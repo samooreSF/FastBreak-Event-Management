@@ -37,12 +37,13 @@
 ## Common Issues
 
 **Auth not working?**
+
 - Check `NEXT_PUBLIC_APP_URL` matches your Vercel URL exactly
 - Verify Supabase redirect URL includes `/auth/callback`
 - Redeploy after adding env vars
 
 **Build fails?**
+
 - Check build logs in Vercel
 - Ensure all env vars are set
 - Verify `package.json` scripts are correct
-

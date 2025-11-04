@@ -1,19 +1,19 @@
-import { Navbar } from "@/components/Navbar"
-import { EventCard } from "@/components/EventCard"
-import { getEvents } from "@/actions/events"
-import { getUser } from "@/actions/auth"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import { Navbar } from "@/components/Navbar";
+import { EventCard } from "@/components/EventCard";
+import { getEvents } from "@/actions/events";
+import { getUser } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export default async function EventsPage() {
-  const { data: events, error } = await getEvents()
-  const { user } = await getUser()
+  const { data: events, error } = await getEvents();
+  const { user } = await getUser();
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -65,5 +65,5 @@ export default async function EventsPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

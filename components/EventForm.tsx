@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select } from "@/components/ui/select"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -14,14 +14,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Event, EventInsert } from "@/types/database.types"
-import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
-import { createEvent, updateEvent } from "@/actions/events"
+} from "@/components/ui/form";
+import { Event, EventInsert } from "@/types/database.types";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { createEvent, updateEvent } from "@/actions/events";
 
 interface EventFormProps {
-  event?: Event
+  event?: Event;
 }
 
 const SPORT_TYPES = [
@@ -36,7 +36,7 @@ const SPORT_TYPES = [
   "Running",
   "Cycling",
   "Other",
-] as const
+] as const;
 
 const eventFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -44,13 +44,13 @@ const eventFormSchema = z.object({
   event_date: z.string().min(1, "Event date and time is required"),
   location: z.string().min(3, "Location must be at least 3 characters"),
   description: z.string().optional(),
-})
+});
 
-type EventFormValues = z.infer<typeof eventFormSchema>
+type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export function EventForm({ event }: EventFormProps) {
-  const { toast } = useToast()
-  const router = useRouter()
+  const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -63,9 +63,9 @@ export function EventForm({ event }: EventFormProps) {
       location: event?.location || "",
       description: event?.description || "",
     },
-  })
+  });
 
-  const isLoading = form.formState.isSubmitting
+  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: EventFormValues) => {
     const eventData: EventInsert = {
@@ -75,15 +75,15 @@ export function EventForm({ event }: EventFormProps) {
       event_date: values.event_date,
       location: values.location,
       created_by: event?.created_by || "",
-    }
+    };
 
-    let result
+    let result;
     if (event) {
       // Update existing event
-      result = await updateEvent(event.id, eventData)
+      result = await updateEvent(event.id, eventData);
     } else {
       // Create new event
-      result = await createEvent(eventData)
+      result = await createEvent(eventData);
     }
 
     if (result.error) {
@@ -91,21 +91,23 @@ export function EventForm({ event }: EventFormProps) {
         variant: "destructive",
         title: "Error",
         description: result.error,
-      })
+      });
     } else {
       toast({
         title: "Success",
-        description: event ? "Event updated successfully" : "Event created successfully",
-      })
+        description: event
+          ? "Event updated successfully"
+          : "Event created successfully",
+      });
       if (result.data) {
-        router.push(`/events/${result.data.id}`)
-        router.refresh()
+        router.push(`/events/${result.data.id}`);
+        router.refresh();
       } else {
-        router.push("/")
-        router.refresh()
+        router.push("/");
+        router.refresh();
       }
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -169,10 +171,7 @@ export function EventForm({ event }: EventFormProps) {
             <FormItem>
               <FormLabel>Location *</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g., Central Park, New York"
-                  {...field}
-                />
+                <Input placeholder="e.g., Central Park, New York" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -206,9 +205,9 @@ export function EventForm({ event }: EventFormProps) {
             variant="outline"
             onClick={() => {
               if (event) {
-                router.push(`/events/${event.id}`)
+                router.push(`/events/${event.id}`);
               } else {
-                router.push("/")
+                router.push("/");
               }
             }}
           >
@@ -217,5 +216,5 @@ export function EventForm({ event }: EventFormProps) {
         </div>
       </form>
     </Form>
-  )
+  );
 }

@@ -1,26 +1,26 @@
-import { Navbar } from "@/components/Navbar"
-import { EventCard } from "@/components/EventCard"
-import { getEvents } from "@/actions/events"
-import { getUser } from "@/actions/auth"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
-import { AuthErrorDisplay } from "@/components/AuthErrorDisplay"
+import { Navbar } from "@/components/Navbar";
+import { EventCard } from "@/components/EventCard";
+import { getEvents } from "@/actions/events";
+import { getUser } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { AuthErrorDisplay } from "@/components/AuthErrorDisplay";
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const { data: events, error } = await getEvents()
-  const { user } = await getUser()
-  const params = await searchParams
-  const authError = params?.error
+  const { data: events, error } = await getEvents();
+  const { user } = await getUser();
+  const params = await searchParams;
+  const authError = params?.error;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -74,5 +74,5 @@ export default async function Home({
         )}
       </main>
     </div>
-  )
+  );
 }

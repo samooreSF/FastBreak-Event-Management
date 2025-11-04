@@ -54,6 +54,7 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ```
 
 **Important:**
+
 - Replace `your_supabase_project_url` with your actual Supabase project URL
 - Replace `your_supabase_anon_key` with your Supabase anon key
 - Replace `your-app.vercel.app` with your actual Vercel deployment URL (you'll get this after first deployment)
@@ -130,4 +131,3 @@ git push
 - Check Vercel Dashboard → Analytics for performance metrics
 - Check Function Logs for server-side errors
 - Monitor Supabase Dashboard for database queries
-

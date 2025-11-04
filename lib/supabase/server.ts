@@ -37,7 +37,7 @@ export const createClient = async (cookieStore?: RequestCookies) => {
   // resolved value; await whichever we have so `cookieStoreResolved` is the
   // runtime object with get/set/delete methods.
   const cookieStoreResolved = cookieStore ? await cookieStore : await cookies();
-  
+
   // Track if we're in a writable context
   const isWritable = !!cookieStore;
 

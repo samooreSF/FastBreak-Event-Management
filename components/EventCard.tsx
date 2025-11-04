@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { Event } from "@/types/database.types"
-import { Button } from "@/components/ui/button"
-import { Calendar, MapPin, Trash2, Edit, Activity } from "lucide-react"
-import { format } from "date-fns"
-import Link from "next/link"
-import { deleteEvent } from "@/actions/events"
-import { useToast } from "@/hooks/use-toast"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Event } from "@/types/database.types";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Trash2, Edit, Activity } from "lucide-react";
+import { format } from "date-fns";
+import Link from "next/link";
+import { deleteEvent } from "@/actions/events";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -16,42 +16,46 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 
 interface EventCardProps {
-  event: Event
-  canEdit?: boolean
-  onDelete?: () => void
+  event: Event;
+  canEdit?: boolean;
+  onDelete?: () => void;
 }
 
-export function EventCard({ event, canEdit = false, onDelete }: EventCardProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const { toast } = useToast()
-  const router = useRouter()
+export function EventCard({
+  event,
+  canEdit = false,
+  onDelete,
+}: EventCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleDelete = async () => {
-    setIsDeleting(true)
-    const result = await deleteEvent(event.id)
-    
+    setIsDeleting(true);
+    const result = await deleteEvent(event.id);
+
     if (result.error) {
       toast({
         variant: "destructive",
         title: "Error",
         description: result.error,
-      })
+      });
     } else {
       toast({
         title: "Success",
         description: "Event deleted successfully",
-      })
-      onDelete?.()
-      router.refresh()
+      });
+      onDelete?.();
+      router.refresh();
     }
-    
-    setIsDeleting(false)
-    setShowDeleteDialog(false)
-  }
+
+    setIsDeleting(false);
+    setShowDeleteDialog(false);
+  };
 
   return (
     <>
@@ -62,7 +66,7 @@ export function EventCard({ event, canEdit = false, onDelete }: EventCardProps) 
               <Activity className="h-5 w-5 text-primary" />
               <h3 className="text-xl font-semibold">{event.title}</h3>
             </div>
-            
+
             {event.description && (
               <p className="text-muted-foreground mb-4">{event.description}</p>
             )}
@@ -117,8 +121,8 @@ export function EventCard({ event, canEdit = false, onDelete }: EventCardProps) 
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete the event
-              "{event.title}".
+              This action cannot be undone. This will permanently delete the
+              event "{event.title}".
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -140,5 +144,5 @@ export function EventCard({ event, canEdit = false, onDelete }: EventCardProps) 
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

@@ -32,8 +32,11 @@ export async function signInWithGoogle() {
       return { error: "Failed to generate OAuth URL" };
     }
 
-    console.log("OAuth URL generated successfully:", data.url.substring(0, 50) + "...");
-    
+    console.log(
+      "OAuth URL generated successfully:",
+      data.url.substring(0, 50) + "..."
+    );
+
     // Return the URL as a string for client-side redirect
     return data.url;
   } catch (err: any) {
@@ -58,11 +61,14 @@ export async function signOut() {
     return { success: true };
   } catch (err: any) {
     // Check if this is a redirect error (Next.js uses this internally)
-    if (err.message === 'NEXT_REDIRECT' || err.digest?.startsWith('NEXT_REDIRECT')) {
+    if (
+      err.message === "NEXT_REDIRECT" ||
+      err.digest?.startsWith("NEXT_REDIRECT")
+    ) {
       // Re-throw redirect errors - Next.js handles them
       throw err;
     }
-    
+
     console.error("Error in signOut:", err);
     return { error: err.message || "Failed to sign out" };
   }

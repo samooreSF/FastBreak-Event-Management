@@ -1,11 +1,11 @@
-import Link from "next/link"
-import { AuthButton } from "./AuthButton"
-import { getUser } from "@/actions/auth"
-import { Button } from "./ui/button"
-import { Activity, Plus } from "lucide-react"
+import Link from "next/link";
+import { AuthButton } from "./AuthButton";
+import { getUser } from "@/actions/auth";
+import { Button } from "./ui/button";
+import { Activity, Plus } from "lucide-react";
 
 export async function Navbar() {
-  const { user } = await getUser()
+  const { user } = await getUser();
 
   return (
     <nav className="border-b bg-background">
@@ -15,7 +15,7 @@ export async function Navbar() {
             <Activity className="h-6 w-6" />
             <span className="text-xl font-bold">Sports Events</span>
           </Link>
-          
+
           <div className="flex items-center gap-4">
             <Link href="/events">
               <Button variant="ghost">All Events</Button>
@@ -33,6 +33,5 @@ export async function Navbar() {
         </div>
       </div>
     </nav>
-  )
+  );
 }
-

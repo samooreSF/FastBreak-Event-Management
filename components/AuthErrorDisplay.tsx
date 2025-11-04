@@ -28,4 +28,3 @@ export function AuthErrorDisplay({ error }: { error: string | null }) {
     </div>
   );
 }
-

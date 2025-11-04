@@ -19,7 +19,7 @@ export function AuthButton({ user }: AuthButtonProps) {
     setIsLoading(true);
     try {
       const result = await signInWithGoogle();
-      
+
       console.log("Sign in result:", result);
 
       if (typeof result === "string") {

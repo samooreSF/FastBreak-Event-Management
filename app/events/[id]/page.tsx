@@ -1,31 +1,31 @@
-import { Navbar } from "@/components/Navbar"
-import { getEventById } from "@/actions/events"
-import { getUser } from "@/actions/auth"
-import { Button } from "@/components/ui/button"
-import { Calendar, MapPin, Activity, Edit, ArrowLeft } from "lucide-react"
-import { format } from "date-fns"
-import Link from "next/link"
-import { notFound } from "next/navigation"
+import { Navbar } from "@/components/Navbar";
+import { getEventById } from "@/actions/events";
+import { getUser } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Activity, Edit, ArrowLeft } from "lucide-react";
+import { format } from "date-fns";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export default async function EventDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = await params
-  const { data: event, error } = await getEventById(id)
-  const { user } = await getUser()
+  const { id } = await params;
+  const { data: event, error } = await getEventById(id);
+  const { user } = await getUser();
 
   if (error || !event) {
-    notFound()
+    notFound();
   }
 
-  const canEdit = user?.id === event.created_by
+  const canEdit = user?.id === event.created_by;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Link href="/events">
           <Button variant="ghost" className="mb-6">
@@ -41,14 +41,14 @@ export default async function EventDetailPage({
                 <Activity className="h-8 w-8 text-primary" />
                 <h1 className="text-4xl font-bold">{event.title}</h1>
               </div>
-              
+
               <div className="flex items-center gap-2 mb-4">
                 <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium capitalize">
                   {event.sport_type}
                 </span>
               </div>
             </div>
-            
+
             {canEdit && (
               <Link href={`/events/${event.id}/edit`}>
                 <Button>
@@ -90,5 +90,5 @@ export default async function EventDetailPage({
         </div>
       </main>
     </div>
-  )
+  );
 }
