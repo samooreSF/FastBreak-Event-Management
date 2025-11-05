@@ -53,7 +53,7 @@ export async function signInWithGoogle(): Promise<ActionResult<string>> {
   });
 }
 
-export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
+export async function signOut(): Promise<ActionResult<{ redirectTo: string }>> {
   return withErrorHandling(async () => {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
@@ -65,9 +65,9 @@ export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
       throw new Error(errorResponse.error);
     }
 
-    // Don't redirect here - let the client component handle navigation
-    // Server actions called from client components shouldn't redirect
-    return { success: true };
+    // Return redirect URL with signout flag for middleware to handle
+    // Middleware will redirect cleanly before React renders, preventing flash
+    return { redirectTo: "/?signout=success" };
   });
 }
 
