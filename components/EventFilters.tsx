@@ -26,19 +26,26 @@ const SPORT_TYPES = [
 export function EventFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   
-  const [sportType, setSportType] = useState(
-    searchParams.get("sport") || "all"
-  );
-  const [title, setTitle] = useState(
-    searchParams.get("title") || ""
-  );
+  // Initialize state only on client to prevent hydration mismatches
+  const [sportType, setSportType] = useState("all");
+  const [title, setTitle] = useState("");
 
-  // Update local state when URL params change
+  // Set mounted flag and initialize from URL params only on client
   useEffect(() => {
+    setMounted(true);
     setSportType(searchParams.get("sport") || "all");
     setTitle(searchParams.get("title") || "");
-  }, [searchParams]);
+  }, []); // Only run on mount
+
+  // Update local state when URL params change (after initial mount)
+  useEffect(() => {
+    if (mounted) {
+      setSportType(searchParams.get("sport") || "all");
+      setTitle(searchParams.get("title") || "");
+    }
+  }, [searchParams, mounted]);
 
   const updateFilters = () => {
     const params = new URLSearchParams();
