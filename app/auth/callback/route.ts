@@ -1,7 +1,6 @@
 // app/auth/callback/route.ts
-import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { exchangeCodeForSession } from "@/actions/auth";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -14,7 +13,6 @@ export async function GET(request: Request) {
   if (error) {
     console.error("OAuth error from provider:", {
       error,
-      errorCode: requestUrl.searchParams.get("error_code"),
       errorDescription,
     });
     const errorMessage = errorDescription
@@ -35,19 +33,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
-    const { data, error: exchangeError } =
-      await supabase.auth.exchangeCodeForSession(code);
+    // Use the reusable server action for code exchange
+    const result = await exchangeCodeForSession(code);
 
-    if (exchangeError) {
-      console.error("Error exchanging code for session:", exchangeError);
+    if (result.error) {
+      console.error("Error exchanging code for session:", result.error);
 
       // Handle rate limit errors gracefully
-      if (
-        exchangeError.status === 429 ||
-        exchangeError.message?.includes("rate limit")
-      ) {
+      if (result.error.includes("rate limit") || result.error.includes("Too many")) {
         return NextResponse.redirect(
           `${origin}/?error=${encodeURIComponent(
             "Too many authentication attempts. Please wait a moment and try again."
@@ -57,9 +50,7 @@ export async function GET(request: Request) {
       }
 
       return NextResponse.redirect(
-        `${origin}/?error=${encodeURIComponent(
-          exchangeError.message || "Failed to exchange code for session"
-        )}`,
+        `${origin}/?error=${encodeURIComponent(result.error)}`,
         307
       );
     }
@@ -67,11 +58,15 @@ export async function GET(request: Request) {
     // Success - Supabase sets session cookies automatically
     // Use 307 (Temporary Redirect) to preserve POST method and prevent streaming errors
     return NextResponse.redirect(`${origin}/`, 307);
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Check if this is a redirect error (Next.js uses this internally)
     if (
-      err.message === "NEXT_REDIRECT" ||
-      err.digest?.startsWith("NEXT_REDIRECT")
+      err &&
+      typeof err === "object" &&
+      (("message" in err && err.message === "NEXT_REDIRECT") ||
+        ("digest" in err &&
+          typeof err.digest === "string" &&
+          err.digest.startsWith("NEXT_REDIRECT")))
     ) {
       // Re-throw redirect errors - Next.js handles them
       throw err;
@@ -79,8 +74,9 @@ export async function GET(request: Request) {
 
     // Handle streaming errors gracefully
     if (
-      err.message?.includes("input stream") ||
-      err.message?.includes("stream")
+      err instanceof Error &&
+      (err.message?.includes("input stream") ||
+        err.message?.includes("stream"))
     ) {
       // Silently redirect - streaming errors are often transient
       return NextResponse.redirect(`${origin}/`, 307);
@@ -90,7 +86,12 @@ export async function GET(request: Request) {
     console.error("Unexpected error in callback:", err);
 
     // Check for rate limit errors
-    if (err.status === 429 || err.message?.includes("rate limit")) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "status" in err &&
+      err.status === 429
+    ) {
       return NextResponse.redirect(
         `${origin}/?error=${encodeURIComponent(
           "Too many authentication attempts. Please wait a moment and try again."
@@ -99,52 +100,10 @@ export async function GET(request: Request) {
       );
     }
 
+    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
     return NextResponse.redirect(
-      `${origin}/?error=${encodeURIComponent(
-        err.message || "An unexpected error occurred"
-      )}`,
+      `${origin}/?error=${encodeURIComponent(errorMessage)}`,
       307
     );
   }
 }
-
-// import { createClient } from "@/lib/supabase/server";
-// import { redirect } from "next/navigation";
-
-// export async function GET(request: Request) {
-//   const requestUrl = new URL(request.url);
-//   const code = requestUrl.searchParams.get("code");
-//   const error = requestUrl.searchParams.get("error");
-//   const errorDescription = requestUrl.searchParams.get("error_description");
-//   const origin = requestUrl.origin;
-
-//   // Handle OAuth errors from Supabase
-//   if (error) {
-//     console.error("OAuth error from Supabase:", {
-//       error,
-//       errorCode: requestUrl.searchParams.get("error_code"),
-//       errorDescription,
-//     });
-//     const errorMessage = errorDescription
-//       ? encodeURIComponent(errorDescription)
-//       : encodeURIComponent(error || "Authentication failed");
-//     return redirect(`${origin}/?error=${errorMessage}`);
-//   }
-
-//   // Handle missing code
-//   if (!code) {
-//     console.error("No authorization code received");
-//     return redirect(`${origin}/?error=${encodeURIComponent("No authorization code received")}`);
-//   }
-
-//   const supabase = await createClient();
-//   const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-//   if (exchangeError) {
-//     console.error("Code exchange error:", exchangeError);
-//     return redirect(`${origin}/?error=${encodeURIComponent(exchangeError.message || "Failed to exchange code for session")}`);
-//   }
-
-//   // Success - Supabase now sets cookies automatically (via the cookieStore)
-//   redirect("/");
-// }

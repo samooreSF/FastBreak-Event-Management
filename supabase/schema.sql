@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS events (
   description TEXT,
   sport_type TEXT NOT NULL,
   event_date TIMESTAMPTZ NOT NULL,
-  location TEXT NOT NULL,
+  venues TEXT NOT NULL,
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

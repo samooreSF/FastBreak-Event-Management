@@ -2,46 +2,46 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// `cookies()` in Next exports a runtime value but not a named type; derive
+// For some reason Next does not export a named type for cookies() 
 // the RequestCookies type locally from the runtime using ReturnType.
 type RequestCookies = ReturnType<typeof cookies>;
 
 /**
- * Create a Supabase server client.
- *
+ * Supabase server client.
+ * Used mostly by actions 
  * If you need to modify cookies (set/delete), call this function from a
  * Route Handler or Server Action and pass the `cookies()` object into the
  * `cookieStore` parameter. Modifying cookies outside of those contexts will
- * throw an error from Next.js.
+ * throw an error from Next.js. I do handle this error but cookies still remain readonly
  */
 export const createClient = async (cookieStore?: RequestCookies) => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL environment variable. Please check your .env.local file."
-    );
-  }
+  //redudant local testing for my environment variables
 
-  if (!supabaseAnonKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable. Please check your .env.local file."
-    );
-  }
+  // if (!supabaseUrl) {
+  //   throw new Error(
+  //     "Missing NEXT_PUBLIC_SUPABASE_URL environment variable. Please check your .env.local file."
+  //   );
+  // }
 
-  // Use provided cookieStore (from a Route Handler / Server Action) when available.
-  // Otherwise fall back to `cookies()` for reads only. Attempting to modify
-  // cookies when `cookieStore` was not provided will throw a helpful error.
-  // `cookieStore` may be a Promise (ReturnType<typeof cookies>) or an already
-  // resolved value; await whichever we have so `cookieStoreResolved` is the
-  // runtime object with get/set/delete methods.
+  // if (!supabaseAnonKey) {
+  //   throw new Error(
+  //     "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable. Please check your .env.local file."
+  //   );
+  // }
+
+  // Use provided cookieStore (from Server Action) when available.
+  // NextJS doesn't like when cookies are modified outside of a Server Action
+
+
   const cookieStoreResolved = cookieStore ? await cookieStore : await cookies();
 
   // Track if we're in a writable context
-  const isWritable = !!cookieStore;
+  const isWritable = Boolean(cookieStore);
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl!, supabaseAnonKey!, {
     cookies: {
       get(name: string) {
         return cookieStoreResolved.get(name)?.value ?? null;

@@ -16,7 +16,7 @@ export interface Database {
           description: string | null;
           sport_type: string;
           event_date: string;
-          location: string;
+          venues: string;
           created_by: string;
           created_at: string;
           updated_at: string;
@@ -27,7 +27,7 @@ export interface Database {
           description?: string | null;
           sport_type: string;
           event_date: string;
-          location: string;
+          venues: string;
           created_by: string;
           created_at?: string;
           updated_at?: string;
@@ -38,7 +38,7 @@ export interface Database {
           description?: string | null;
           sport_type?: string;
           event_date?: string;
-          location?: string;
+          venues?: string;
           created_by?: string;
           created_at?: string;
           updated_at?: string;

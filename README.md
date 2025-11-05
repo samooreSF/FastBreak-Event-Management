@@ -139,6 +139,10 @@ sports-event-app/
     └── schema.sql        # SQL schema file
 ```
 
+## Database Setup
+
+No additional database setup required! All filters work out of the box using Supabase's built-in query capabilities.
+
 ## Deployment to Vercel
 
 1. Push your code to GitHub
@@ -172,10 +176,12 @@ sports-event-app/
 
 ### Event Management
 
-- Create events with title, description, sport type, date, and location
+- Create events with title, description, sport type, date, and venues
 - View all events or individual event details
 - Edit and delete events (only by creator)
 - Responsive event cards with rich information display
+- Filter events by sport type and event title
+- Real-time database filtering with URL-based search params
 
 ### User Experience
 

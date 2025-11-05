@@ -1,10 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import {
+  withErrorHandling,
+  handleAuthError,
+  type ActionResult,
+} from "@/lib/errors";
+import type { User } from "@supabase/supabase-js";
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<string | { error: string }> {
   try {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
@@ -24,7 +29,8 @@ export async function signInWithGoogle() {
 
     if (error) {
       console.error("Google sign-in error:", error);
-      return { error: error.message };
+      const errorResponse = handleAuthError(error);
+      return { error: errorResponse.error };
     }
 
     if (!data?.url) {
@@ -39,42 +45,41 @@ export async function signInWithGoogle() {
 
     // Return the URL as a string for client-side redirect
     return data.url;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    // Re-throw Next.js redirect errors
+    if (
+      err &&
+      typeof err === "object" &&
+      (("message" in err && err.message === "NEXT_REDIRECT") ||
+        ("digest" in err && typeof err.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")))
+    ) {
+      throw err;
+    }
+    
     console.error("Error in signInWithGoogle:", err);
-    return { error: err.message || "Failed to initiate Google sign-in" };
+    const errorResponse = handleAuthError(err);
+    return { error: errorResponse.error };
   }
 }
 
-export async function signOut() {
-  try {
+export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
+  return withErrorHandling(async () => {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
 
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      return { error: error.message };
+      throw handleAuthError(error);
     }
 
     // Don't redirect here - let the client component handle navigation
     // Server actions called from client components shouldn't redirect
     return { success: true };
-  } catch (err: any) {
-    // Check if this is a redirect error (Next.js uses this internally)
-    if (
-      err.message === "NEXT_REDIRECT" ||
-      err.digest?.startsWith("NEXT_REDIRECT")
-    ) {
-      // Re-throw redirect errors - Next.js handles them
-      throw err;
-    }
-
-    console.error("Error in signOut:", err);
-    return { error: err.message || "Failed to sign out" };
-  }
+  });
 }
 
-export async function getUser() {
+export async function getUser(): Promise<{ user: User | null; error: string | null }> {
   try {
     // Always pass cookies() in server actions to allow Supabase to modify cookies if needed (e.g., token refresh)
     const cookieStore = cookies();
@@ -85,13 +90,72 @@ export async function getUser() {
       error,
     } = await supabase.auth.getUser();
 
+    // Handle "Auth session missing" as a normal state (user not authenticated), not an error
     if (error) {
-      return { user: null, error: error.message };
+      // Check if it's a session missing error (expected when user is not signed in)
+      if (
+        error.message?.includes("Auth session missing") ||
+        error.message?.includes("session missing") ||
+        error.status === 400
+      ) {
+        // This is expected - user is simply not authenticated
+        return { user: null, error: null };
+      }
+      
+      // For other auth errors, return the error
+      const errorResponse = handleAuthError(error);
+      return { user: null, error: errorResponse.error };
     }
 
-    return { user, error: null };
-  } catch (err: any) {
+    return { user: user || null, error: null };
+  } catch (err: unknown) {
+    // Re-throw Next.js redirect errors
+    if (
+      err &&
+      typeof err === "object" &&
+      (("message" in err && err.message === "NEXT_REDIRECT") ||
+        ("digest" in err &&
+          typeof err.digest === "string" &&
+          err.digest.startsWith("NEXT_REDIRECT")))
+    ) {
+      throw err;
+    }
+    
     console.error("Error in getUser:", err);
-    return { user: null, error: err.message || "Failed to get user" };
+    // Check if it's a session missing error
+    if (
+      err instanceof Error &&
+      (err.message?.includes("Auth session missing") ||
+        err.message?.includes("session missing"))
+    ) {
+      return { user: null, error: null };
+    }
+    
+    const errorResponse = handleAuthError(err);
+    return { user: null, error: errorResponse.error };
   }
+}
+
+/**
+ * Exchange OAuth authorization code for a session
+ * Used by the callback route handler
+ */
+export async function exchangeCodeForSession(code: string): Promise<{ error: string | null }> {
+  return withErrorHandling(async () => {
+    const cookieStore = cookies();
+    const supabase = await createClient(cookieStore);
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      throw handleAuthError(error);
+    }
+
+    return { success: true };
+  }).then((result) => {
+    if ("error" in result && result.error !== null) {
+      return { error: result.error };
+    }
+    return { error: null };
+  });
 }

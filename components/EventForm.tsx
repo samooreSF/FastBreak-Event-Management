@@ -42,7 +42,7 @@ const eventFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   sport_type: z.string().min(1, "Please select a sport type"),
   event_date: z.string().min(1, "Event date and time is required"),
-  location: z.string().min(3, "Location must be at least 3 characters"),
+  venues: z.string().min(3, "Venues must be at least 3 characters"),
   description: z.string().optional(),
 });
 
@@ -60,7 +60,7 @@ export function EventForm({ event }: EventFormProps) {
       event_date: event?.event_date
         ? new Date(event.event_date).toISOString().slice(0, 16)
         : "",
-      location: event?.location || "",
+      venues: event?.venues || "",
       description: event?.description || "",
     },
   });
@@ -73,7 +73,7 @@ export function EventForm({ event }: EventFormProps) {
       description: values.description || null,
       sport_type: values.sport_type,
       event_date: values.event_date,
-      location: values.location,
+      venues: values.venues,
       created_by: event?.created_by || "",
     };
 
@@ -111,16 +111,17 @@ export function EventForm({ event }: EventFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Event Title *</FormLabel>
+              <FormLabel className="text-sm sm:text-base">Event Title *</FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., Summer Soccer Tournament"
+                  className="text-sm sm:text-base"
                   {...field}
                 />
               </FormControl>
@@ -134,9 +135,9 @@ export function EventForm({ event }: EventFormProps) {
           name="sport_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Sport Type *</FormLabel>
+              <FormLabel className="text-sm sm:text-base">Sport Type *</FormLabel>
               <FormControl>
-                <Select {...field}>
+                <Select className="text-sm sm:text-base" {...field}>
                   <option value="">Select a sport</option>
                   {SPORT_TYPES.map((sport) => (
                     <option key={sport} value={sport}>
@@ -155,9 +156,9 @@ export function EventForm({ event }: EventFormProps) {
           name="event_date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Event Date & Time *</FormLabel>
+              <FormLabel className="text-sm sm:text-base">Event Date & Time *</FormLabel>
               <FormControl>
-                <Input type="datetime-local" {...field} />
+                <Input type="datetime-local" className="text-sm sm:text-base" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -166,12 +167,16 @@ export function EventForm({ event }: EventFormProps) {
 
         <FormField
           control={form.control}
-          name="location"
+          name="venues"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Location *</FormLabel>
+              <FormLabel className="text-sm sm:text-base">Venues *</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Central Park, New York" {...field} />
+                <Input 
+                  placeholder="e.g., Central Park, Madison Square Garden" 
+                  className="text-sm sm:text-base"
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -183,11 +188,12 @@ export function EventForm({ event }: EventFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel className="text-sm sm:text-base">Description</FormLabel>
               <FormControl>
                 <Textarea
                   rows={4}
                   placeholder="Add details about the event..."
+                  className="text-sm sm:text-base resize-y"
                   {...field}
                 />
               </FormControl>
@@ -196,13 +202,14 @@ export function EventForm({ event }: EventFormProps) {
           )}
         />
 
-        <div className="flex gap-4">
-          <Button type="submit" disabled={isLoading}>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? "Saving..." : event ? "Update Event" : "Create Event"}
           </Button>
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => {
               if (event) {
                 router.push(`/events/${event.id}`);

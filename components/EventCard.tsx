@@ -2,13 +2,15 @@
 
 import { Event } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Trash2, Edit, Activity } from "lucide-react";
+import { Calendar, MapPin, Trash2, Edit, Activity, Users } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { deleteEvent } from "@/actions/events";
+import { RSVPButton } from "./RSVPButton";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Dialog,
   DialogContent,
@@ -22,12 +24,18 @@ interface EventCardProps {
   event: Event;
   canEdit?: boolean;
   onDelete?: () => void;
+  user?: SupabaseUser | null;
+  rsvpCount?: number;
+  hasRSVP?: boolean;
 }
 
 export function EventCard({
   event,
   canEdit = false,
   onDelete,
+  user,
+  rsvpCount = 0,
+  hasRSVP = false,
 }: EventCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -59,60 +67,73 @@ export function EventCard({
 
   return (
     <>
-      <div className="rounded-lg border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div className="rounded-lg border bg-card p-4 sm:p-6 shadow-sm transition-shadow hover:shadow-md">
         <div className="flex items-start justify-between">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Activity className="h-5 w-5 text-primary" />
-              <h3 className="text-xl font-semibold">{event.title}</h3>
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+              <h3 className="text-lg sm:text-xl font-semibold truncate">{event.title}</h3>
             </div>
 
             {event.description && (
-              <p className="text-muted-foreground mb-4">{event.description}</p>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4 line-clamp-2">{event.description}</p>
             )}
 
-            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-col gap-2 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{format(new Date(event.event_date), "PPP 'at' p")}</span>
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{format(new Date(event.event_date), "PPP 'at' p")}</span>
               </div>
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{event.location}</span>
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{event.venues}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
+                <Activity className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span className="capitalize">{event.sport_type}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span>{rsvpCount} RSVP{rsvpCount !== 1 ? "s" : ""}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
-          <Link href={`/events/${event.id}`}>
-            <Button variant="outline" size="sm">
-              View Details
-            </Button>
-          </Link>
-          {canEdit && (
-            <>
-              <Link href={`/events/${event.id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              </Link>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+        <div className="mt-4 flex flex-col gap-3">
+          <RSVPButton
+            eventId={event.id}
+            user={user}
+            initialRSVPCount={rsvpCount}
+            initialHasRSVP={hasRSVP}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/events/${event.id}`} className="flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                View Details
               </Button>
-            </>
-          )}
+            </Link>
+            {canEdit && (
+              <>
+                <Link href={`/events/${event.id}/edit`} className="flex-1 sm:flex-none">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                </Link>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isDeleting}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Delete</span>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
