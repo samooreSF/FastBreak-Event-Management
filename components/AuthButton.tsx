@@ -26,7 +26,6 @@ export function AuthButton({ user }: AuthButtonProps) {
       if (typeof result === "string") {
         // Server action returned a URL - redirect client-side
         window.location.href = result;
-        return; // Exit early to prevent any state updates
       } else if (result?.error) {
         toast({
           variant: "destructive",
@@ -70,10 +69,7 @@ export function AuthButton({ user }: AuthButtonProps) {
       } else {
         // Sign out successful - do a full page reload to ensure server components
         // re-fetch the user state (which will now be null)
-        // Use window.location.href for full page reload after sign-out
-        // This ensures all server components re-render with updated auth state
         window.location.href = "/";
-        return; // Exit early to prevent any state updates
       }
     } catch (error) {
       console.error("Sign-out error:", error);
