@@ -36,10 +36,13 @@ export function AuthButton({ user }: AuthButtonProps) {
       }
 
       // Success - result.data is the OAuth URL
-      // No need to setIsLoading(false) - component will unmount on redirect
+      // Use requestAnimationFrame to ensure redirect happens after React's render cycle
+      // This prevents "input stream" errors and flashing during navigation
       if (result.data) {
         isNavigatingRef.current = true;
-        window.location.replace(result.data);
+        requestAnimationFrame(() => {
+          window.location.replace(result.data);
+        });
       }
     } catch (error) {
       if (!isNavigatingRef.current) {
@@ -73,9 +76,12 @@ export function AuthButton({ user }: AuthButtonProps) {
       }
 
       // Success - redirect to home page
-      // No need to setIsLoading(false) - component will unmount on redirect
+      // Use requestAnimationFrame to ensure redirect happens after React's render cycle
+      // This prevents "input stream" errors and flashing during navigation
       isNavigatingRef.current = true;
-      window.location.replace("/");
+      requestAnimationFrame(() => {
+        window.location.replace("/");
+      });
     } catch (error) {
       if (!isNavigatingRef.current) {
         const errorMessage = getError(error) || "An unexpected error occurred";
