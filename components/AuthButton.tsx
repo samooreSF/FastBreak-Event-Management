@@ -4,38 +4,52 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, User } from "lucide-react";
 import { signInWithGoogle, signOut } from "@/actions/auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface AuthButtonProps {
   user: SupabaseUser | null;
 }
 
+// Type guard for error response
+function isErrorResponse(result: unknown): result is { error: string } {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "error" in result &&
+    typeof (result as { error: unknown }).error === "string"
+  );
+}
+
 export function AuthButton({ user }: AuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const isNavigatingRef = useRef(false);
 
-  // This component uses the google sign in action to authenticate user
   const handleSignIn = async () => {
+    if (isNavigatingRef.current || isLoading) return;
+    
     setIsLoading(true);
     try {
       const result = await signInWithGoogle();
 
-      // console.log("Sign in result:", result);
-
-      if (typeof result === "string") {
-        // Server action returned a URL - redirect client-side
+      // Type guard: Check if result is a string (OAuth URL)
+      if (typeof result === "string" && result.length > 0) {
+        isNavigatingRef.current = true;
         window.location.href = result;
-      } else if (result?.error) {
+        return;
+      }
+
+      // Type guard: Check if result is an error response
+      if (!isNavigatingRef.current && isErrorResponse(result)) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: result.error,
+          description: result.error || "Failed to initiate sign-in",
         });
         setIsLoading(false);
-      } else {
-        // Unexpected result format
-        console.error("Unexpected sign-in result:", result);
+      } else if (!isNavigatingRef.current) {
+        // Fallback for unexpected result types
         toast({
           variant: "destructive",
           title: "Error",
@@ -44,41 +58,48 @@ export function AuthButton({ user }: AuthButtonProps) {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error("Sign-in error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
-      });
-      setIsLoading(false);
+      if (!isNavigatingRef.current) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        setIsLoading(false);
+      }
     }
   };
 
   const handleSignOut = async () => {
+    if (isNavigatingRef.current || isLoading) return;
+    
     setIsLoading(true);
     try {
       const result = await signOut();
 
-      if (result?.error) {
+      // Type guard: Check if result has an error property
+      if (isErrorResponse(result) && !isNavigatingRef.current) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: result.error,
+          description: result.error || "Sign out failed",
         });
         setIsLoading(false);
-      } else {
-        // Sign out successful - do a full page reload to ensure server components
-        // re-fetch the user state (which will now be null)
-        window.location.href = "/";
+      } else if (!isErrorResponse(result) && !isNavigatingRef.current) {
+        // Success case - no error property means success
+        isNavigatingRef.current = true;
+        window.location.replace("/");
       }
     } catch (error) {
-      console.error("Sign-out error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
-      });
-      setIsLoading(false);
+      if (!isNavigatingRef.current) {
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        setIsLoading(false);
+      }
     }
   };
 
@@ -88,7 +109,7 @@ export function AuthButton({ user }: AuthButtonProps) {
         <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
           <User className="h-4 w-4" />
           <span className="truncate max-w-[120px] lg:max-w-none">
-            {user.email}
+            {user?.email || "User"}
           </span>
         </div>
         <Button
