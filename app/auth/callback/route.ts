@@ -2,6 +2,13 @@
 import { NextResponse } from "next/server";
 import { exchangeCodeForSession } from "@/actions/auth";
 
+// Disable streaming for this route to prevent "input stream" errors during redirects
+// force-dynamic prevents Next.js from trying to stream the response
+export const dynamic = "force-dynamic";
+// Explicitly use Node.js runtime (default, but explicit for clarity)
+// Required for reliable cookie handling with Supabase auth
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -18,7 +25,14 @@ export async function GET(request: Request) {
     const errorMessage = errorDescription
       ? encodeURIComponent(errorDescription)
       : encodeURIComponent(error || "Authentication failed");
-    return NextResponse.redirect(`${origin}/?error=${errorMessage}`, 307);
+    
+    // Use replace instead of redirect to avoid streaming conflicts
+    return NextResponse.redirect(`${origin}/?error=${errorMessage}`, {
+      status: 307,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   }
 
   // Handle missing code
@@ -28,7 +42,12 @@ export async function GET(request: Request) {
       `${origin}/?error=${encodeURIComponent(
         "No authorization code received"
       )}`,
-      307
+      {
+        status: 307,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
     );
   }
 
@@ -45,19 +64,34 @@ export async function GET(request: Request) {
           `${origin}/?error=${encodeURIComponent(
             "Too many authentication attempts. Please wait a moment and try again."
           )}`,
-          307
+          {
+            status: 307,
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+            },
+          }
         );
       }
 
       return NextResponse.redirect(
         `${origin}/?error=${encodeURIComponent(result.error)}`,
-        307
+        {
+          status: 307,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        }
       );
     }
 
     // Success - Supabase sets session cookies automatically
-    // Use 307 (Temporary Redirect) to preserve POST method and prevent streaming errors
-    return NextResponse.redirect(`${origin}/`, 307);
+    // Use 307 redirect with no-cache headers to prevent streaming conflicts
+    return NextResponse.redirect(`${origin}/`, {
+      status: 307,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   } catch (err: unknown) {
     // Check if this is a redirect error (Next.js uses this internally)
     if (
@@ -76,10 +110,16 @@ export async function GET(request: Request) {
     if (
       err instanceof Error &&
       (err.message?.includes("input stream") ||
-        err.message?.includes("stream"))
+        err.message?.includes("stream") ||
+        err.message?.includes("ECONNRESET"))
     ) {
       // Silently redirect - streaming errors are often transient
-      return NextResponse.redirect(`${origin}/`, 307);
+      return NextResponse.redirect(`${origin}/`, {
+        status: 307,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      });
     }
 
     // Handle actual errors
@@ -96,14 +136,24 @@ export async function GET(request: Request) {
         `${origin}/?error=${encodeURIComponent(
           "Too many authentication attempts. Please wait a moment and try again."
         )}`,
-        307
+        {
+          status: 307,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        }
       );
     }
 
     const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
     return NextResponse.redirect(
       `${origin}/?error=${encodeURIComponent(errorMessage)}`,
-      307
+      {
+        status: 307,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
     );
   }
 }
