@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { exchangeCodeForSession } from "@/actions/auth";
-import { isErrorResponse, isNextRedirectError } from "@/lib/errors";
+import { isErrorResponse, isNextRedirectError, ErrorCode } from "@/lib/errors";
 
 // Disable streaming for this route to prevent "input stream" errors during redirects
 // force-dynamic prevents Next.js from trying to stream the response
@@ -54,22 +54,38 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await exchangeCodeForSession(code);
+    // Add retry logic for rate limit errors
+    let result;
+    let retries = 0;
+    const maxRetries = 2;
+    
+    while (retries <= maxRetries) {
+      result = await exchangeCodeForSession(code);
 
-    // Check if there's an error
-    if (isErrorResponse(result)) {
-      console.error("Error exchanging code for session:", result.error);
+      // Check if there's an error
+      if (isErrorResponse(result)) {
+        const isRateLimit = 
+          result.code === ErrorCode.RATE_LIMIT ||
+          result.error.toLowerCase().includes("rate limit") || 
+          result.error.toLowerCase().includes("too many");
 
-      // Handle rate limit errors gracefully
-      const isRateLimit = 
-        result.error.includes("rate limit") || 
-        result.error.includes("Too many");
+        // Retry on rate limit with exponential backoff
+        if (isRateLimit && retries < maxRetries) {
+          retries++;
+          const delay = Math.min(1000 * Math.pow(2, retries), 5000); // Max 5 seconds
+          console.log(`Rate limit hit, retrying after ${delay}ms (attempt ${retries}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
 
-      const errorMessage = isRateLimit
-        ? "Too many authentication attempts. Please wait a moment and try again."
-        : result.error;
+        // Handle final error or non-rate-limit error
+        console.error("Error exchanging code for session:", result.error);
+        redirect(`/?error=${encodeURIComponent(result.error)}`);
+        return;
+      }
 
-      redirect(`/?error=${encodeURIComponent(errorMessage)}`);
+      // Success - break out of retry loop
+      break;
     }
 
     // Success - redirect to home page

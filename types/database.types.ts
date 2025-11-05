@@ -6,6 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+//Use this for type checking with Database schema 
+//
+
 export interface Database {
   public: {
     Tables: {

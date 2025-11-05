@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-//Use these styles for entire app so I don't need to use tailwind for every component
+//Use these styles for entire app so I don't need to define for every component
+//Might be able to abstract this to global css level
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// 
+//
 export const metadata: Metadata = {
   title: "Sports Event Manager",
   description: "Create, view, and manage sporting events",

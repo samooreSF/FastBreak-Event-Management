@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, User, Loader2 } from "lucide-react";
-import { signInWithGoogle, signOut } from "@/actions/auth";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { isErrorResponse, getError } from "@/lib/errors";
+import { getError } from "@/lib/errors";
 
 interface AuthButtonProps {
   user: SupabaseUser | null;
@@ -22,39 +22,50 @@ export function AuthButton({ user }: AuthButtonProps) {
     if (isNavigatingRef.current || isLoading) return;
 
     setIsLoading(true);
+    setIsRedirecting(true);
+    
     try {
-      const result = await signInWithGoogle();
+      const supabase = createBrowserSupabaseClient();
 
-      // Check if it's an error response
-      if (isErrorResponse(result)) {
+      // Get the app URL for the callback
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const redirectTo = `${appUrl}/auth/callback`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (error) {
+        setIsLoading(false);
+        setIsRedirecting(false);
         toast({
           variant: "destructive",
           title: "Error",
-          description: result.error || "Failed to initiate sign-in",
+          description: error.message || "Failed to initiate sign-in",
         });
-        setIsLoading(false);
         return;
       }
 
-      // Success - result.data is the OAuth URL
-      // Show loading overlay before redirect to mask any flash
-      if (result.data) {
+      // Success - browser client returns OAuth URL
+      // Redirect to the OAuth URL - browser client handles this smoothly
+      if (data?.url) {
         isNavigatingRef.current = true;
-        setIsRedirecting(true);
-        // Small delay to ensure loading overlay renders before redirect
-        setTimeout(() => {
-          window.location.replace(result.data);
-        }, 50);
+        // Browser client redirect - no server-side streaming conflicts
+        window.location.href = data.url;
       }
     } catch (error) {
       if (!isNavigatingRef.current) {
+        setIsLoading(false);
+        setIsRedirecting(false);
         const errorMessage = getError(error) || "An unexpected error occurred";
         toast({
           variant: "destructive",
           title: "Error",
           description: errorMessage,
         });
-        setIsLoading(false);
       }
     }
   };
@@ -63,38 +74,38 @@ export function AuthButton({ user }: AuthButtonProps) {
     if (isNavigatingRef.current || isLoading) return;
 
     setIsLoading(true);
-    try {
-      const result = await signOut();
+    setIsRedirecting(true); // Show loading overlay immediately
 
-      // Check if it's an error response
-      if (isErrorResponse(result)) {
+    try {
+      const supabase = createBrowserSupabaseClient();
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        setIsLoading(false);
+        setIsRedirecting(false);
         toast({
           variant: "destructive",
           title: "Error",
-          description: result.error || "Sign out failed",
+          description: error.message || "Sign out failed",
         });
-        setIsLoading(false);
         return;
       }
 
-      // Success - redirect using URL from server action
-      if (result.data?.redirectTo) {
-        isNavigatingRef.current = true;
-        setIsRedirecting(true);
-        // Small delay to ensure loading overlay renders before redirect
-        setTimeout(() => {
-          window.location.replace(result.data.redirectTo);
-        }, 50);
-      }
+      // Success - redirect to home page
+      // Browser client handles this smoothly without server-side streaming conflicts
+      isNavigatingRef.current = true;
+      window.location.replace("/");
     } catch (error) {
       if (!isNavigatingRef.current) {
+        setIsLoading(false);
+        setIsRedirecting(false);
         const errorMessage = getError(error) || "An unexpected error occurred";
         toast({
           variant: "destructive",
           title: "Error",
           description: errorMessage,
         });
-        setIsLoading(false);
       }
     }
   };

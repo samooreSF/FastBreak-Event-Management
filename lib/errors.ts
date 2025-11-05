@@ -160,7 +160,30 @@ export function handleSupabaseError(error: unknown): ErrorResponse {
  */
 export function handleAuthError(error: unknown): ErrorResponse {
   if (error && typeof error === "object" && "message" in error) {
-    const authError = error as { message: string; status?: number };
+    const authError = error as { message: string; status?: number; code?: string };
+
+    // Handle rate limit errors
+    if (
+      authError.status === 429 ||
+      authError.message?.toLowerCase().includes("rate limit") ||
+      authError.message?.toLowerCase().includes("too many requests")
+    ) {
+      return createErrorResponse(
+        "Too many authentication requests. Please wait a moment and try again.",
+        ErrorCode.RATE_LIMIT
+      );
+    }
+
+    // Handle refresh token errors (not rate limit, but session expired)
+    if (
+      authError.code === "refresh_token_not_found" ||
+      authError.message?.toLowerCase().includes("refresh token")
+    ) {
+      return createErrorResponse(
+        "Session expired. Please sign in again.",
+        ErrorCode.AUTH_REQUIRED
+      );
+    }
 
     if (
       authError.status === 401 ||
