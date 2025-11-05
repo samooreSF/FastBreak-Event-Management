@@ -15,8 +15,17 @@ export async function signInWithGoogle(): Promise<string | { error: string }> {
     const supabase = await createClient(cookieStore);
 
     // Get the app URL for the callback
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://fast-break-event-management.vercel.app";
     const redirectTo = `${appUrl}/auth/callback`;
+
+    //test env variable
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error(
+        "Missing NEXT_PUBLIC_APP_URL environment variable. Please check your env variables."
+      );
+    }
 
     console.log("Initiating Google OAuth with redirectTo:", redirectTo);
 
@@ -51,11 +60,13 @@ export async function signInWithGoogle(): Promise<string | { error: string }> {
       err &&
       typeof err === "object" &&
       (("message" in err && err.message === "NEXT_REDIRECT") ||
-        ("digest" in err && typeof err.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")))
+        ("digest" in err &&
+          typeof err.digest === "string" &&
+          err.digest.startsWith("NEXT_REDIRECT")))
     ) {
       throw err;
     }
-    
+
     console.error("Error in signInWithGoogle:", err);
     const errorResponse = handleAuthError(err);
     return { error: errorResponse.error };
@@ -79,7 +90,10 @@ export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
   });
 }
 
-export async function getUser(): Promise<{ user: User | null; error: string | null }> {
+export async function getUser(): Promise<{
+  user: User | null;
+  error: string | null;
+}> {
   try {
     // Always pass cookies() in server actions to allow Supabase to modify cookies if needed (e.g., token refresh)
     const cookieStore = cookies();
@@ -101,7 +115,7 @@ export async function getUser(): Promise<{ user: User | null; error: string | nu
         // This is expected - user is simply not authenticated
         return { user: null, error: null };
       }
-      
+
       // For other auth errors, return the error
       const errorResponse = handleAuthError(error);
       return { user: null, error: errorResponse.error };
@@ -120,7 +134,7 @@ export async function getUser(): Promise<{ user: User | null; error: string | nu
     ) {
       throw err;
     }
-    
+
     console.error("Error in getUser:", err);
     // Check if it's a session missing error
     if (
@@ -130,7 +144,7 @@ export async function getUser(): Promise<{ user: User | null; error: string | nu
     ) {
       return { user: null, error: null };
     }
-    
+
     const errorResponse = handleAuthError(err);
     return { user: null, error: errorResponse.error };
   }
@@ -140,7 +154,9 @@ export async function getUser(): Promise<{ user: User | null; error: string | nu
  * Exchange OAuth authorization code for a session
  * Used by the callback route handler
  */
-export async function exchangeCodeForSession(code: string): Promise<{ error: string | null }> {
+export async function exchangeCodeForSession(
+  code: string
+): Promise<{ error: string | null }> {
   return withErrorHandling(async () => {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
