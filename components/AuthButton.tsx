@@ -36,11 +36,10 @@ export function AuthButton({ user }: AuthButtonProps) {
       }
 
       // Success - result.data is the OAuth URL
+      // No need to setIsLoading(false) - component will unmount on redirect
       if (result.data) {
         isNavigatingRef.current = true;
-        setTimeout(() => {
-          window.location.replace(result.data);
-        }, 0);
+        window.location.replace(result.data);
       }
     } catch (error) {
       if (!isNavigatingRef.current) {
@@ -74,10 +73,9 @@ export function AuthButton({ user }: AuthButtonProps) {
       }
 
       // Success - redirect to home page
+      // No need to setIsLoading(false) - component will unmount on redirect
       isNavigatingRef.current = true;
-      setTimeout(() => {
-        window.location.replace("/");
-      }, 0);
+      window.location.replace("/");
     } catch (error) {
       if (!isNavigatingRef.current) {
         const errorMessage = getError(error) || "An unexpected error occurred";
