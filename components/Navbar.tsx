@@ -16,7 +16,7 @@ export async function Navbar() {
             <span className="text-lg sm:text-xl font-bold">Sports Guru</span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex-center-responsive">
             <Link href="/events">
               <Button
                 variant="ghost"

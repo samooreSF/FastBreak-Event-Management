@@ -92,7 +92,7 @@ export default async function Home({
                   <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 mb-2 sm:mb-3">
                     <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <h3 className="text-sm sm:text-base font-semibold mb-2">
+                  <h3 className="text-responsive font-semibold mb-2">
                     Community First
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground">
@@ -104,7 +104,7 @@ export default async function Home({
                   <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 mb-2 sm:mb-3">
                     <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <h3 className="text-sm sm:text-base font-semibold mb-2">
+                  <h3 className="text-responsive font-semibold mb-2">
                     Easy Discovery
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground">
@@ -115,7 +115,7 @@ export default async function Home({
                   <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 mb-2 sm:mb-3">
                     <Target className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <h3 className="text-sm sm:text-base font-semibold mb-2">
+                  <h3 className="text-responsive font-semibold mb-2">
                     Organize & Grow
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground">
@@ -130,15 +130,15 @@ export default async function Home({
 
         {/* Trending Events Section */}
         <section className="mb-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-            <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex-responsive items-start sm:items-center justify-between gap-responsive mb-6 sm:mb-8">
+            <div className="flex-center-responsive">
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               <h2 className="text-2xl sm:text-3xl font-bold">
                 Trending Events
               </h2>
             </div>
-            <Link href="/events" className="w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+            <Link href="/events" className="btn-responsive">
+              <Button variant="outline" size="sm" className="btn-responsive">
                 View All Events
               </Button>
             </Link>
@@ -204,12 +204,12 @@ export default async function Home({
                 <h3 className="text-xl sm:text-2xl font-bold mb-2">
                   Ready to Join the Community?
                 </h3>
-                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
+                <p className="text-responsive text-muted-foreground mb-4 sm:mb-6">
                   Sign in to discover events, create your own, and connect with
                   fellow sports enthusiasts
                 </p>
                 <Link href="/events" className="inline-block">
-                  <Button size="lg" className="w-full sm:w-auto">
+                  <Button size="lg" className="btn-responsive">
                     Become a Guru Now
                   </Button>
                 </Link>

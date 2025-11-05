@@ -92,7 +92,7 @@ export function EventFilters() {
               id="sport-filter"
               value={sportType}
               onChange={(e) => setSportType(e.target.value)}
-              className="text-sm sm:text-base"
+              className="text-responsive"
             >
               {SPORT_TYPES.map((sport) => (
                 <option key={sport} value={sport}>
@@ -117,12 +117,12 @@ export function EventFilters() {
                   updateFilters();
                 }
               }}
-              className="text-sm sm:text-base"
+              className="text-responsive"
             />
           </div>
 
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
-            <Button onClick={updateFilters} className="flex-1 sm:flex-none sm:px-6 text-sm sm:text-base">
+            <Button onClick={updateFilters} className="flex-1 sm:flex-none sm:px-6 text-responsive text-black">
               Apply Filters
             </Button>
             {hasActiveFilters && (

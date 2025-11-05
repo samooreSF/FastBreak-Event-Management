@@ -80,3 +80,67 @@ body {
 * {
   border-color: hsl(var(--border));
 }
+
+/* Style datetime-local input calendar icon to be white */
+.white-calendar-icon::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.white-calendar-icon::-moz-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* Style select dropdown arrow with margin */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4L6 8L10 4' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+/* Utility Classes - Reusable Tailwind patterns */
+@layer utilities {
+  /* Responsive text sizing - commonly used for form labels and inputs */
+  .text-responsive {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Responsive button width - full width on mobile, auto on desktop */
+  .btn-responsive {
+    @apply w-full sm:w-auto;
+  }
+
+  /* Responsive flex column to row layout */
+  .flex-responsive {
+    @apply flex flex-col sm:flex-row;
+  }
+
+  /* Common responsive flex with items center */
+  .flex-center-responsive {
+    @apply flex items-center gap-2 sm:gap-4;
+  }
+
+  /* Responsive vertical spacing */
+  .space-y-responsive {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  /* Responsive gap spacing */
+  .gap-responsive {
+    @apply gap-3 sm:gap-4;
+  }
+
+  /* Responsive form label styling */
+  .form-label-responsive {
+    @apply text-sm sm:text-base;
+  }
+}

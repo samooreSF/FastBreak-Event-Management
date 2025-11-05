@@ -40,9 +40,9 @@ export default async function EventDetailPage({
         </Link>
 
         <div className="bg-card rounded-lg border p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div className="flex-responsive sm:items-start sm:justify-between gap-responsive mb-6">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="flex-center-responsive mb-3 sm:mb-4">
                 <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold break-words">{event.title}</h1>
               </div>
@@ -56,7 +56,7 @@ export default async function EventDetailPage({
 
             {canEdit && (
               <Link href={`/events/${event.id}/edit`} className="flex-shrink-0">
-                <Button size="sm" className="w-full sm:w-auto">
+                <Button size="sm" className="btn-responsive">
                   <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Edit Event</span>
                   <span className="sm:hidden">Edit</span>
@@ -68,7 +68,7 @@ export default async function EventDetailPage({
           {event.description && (
             <div className="mb-6 sm:mb-8">
               <h2 className="text-lg sm:text-xl font-semibold mb-2">Description</h2>
-              <p className="text-sm sm:text-base text-muted-foreground whitespace-pre-wrap break-words">
+              <p className="text-responsive text-muted-foreground whitespace-pre-wrap break-words">
                 {event.description}
               </p>
             </div>
@@ -78,8 +78,8 @@ export default async function EventDetailPage({
             <div className="flex items-start gap-2 sm:gap-3">
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm sm:text-base font-medium">Date & Time</p>
-                <p className="text-sm sm:text-base text-muted-foreground break-words">
+                <p className="text-responsive font-medium">Date & Time</p>
+                <p className="text-responsive text-muted-foreground break-words">
                   {format(new Date(event.event_date), "PPP 'at' p")}
                 </p>
               </div>
@@ -88,15 +88,15 @@ export default async function EventDetailPage({
             <div className="flex items-start gap-2 sm:gap-3">
               <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm sm:text-base font-medium">Venues</p>
-                <p className="text-sm sm:text-base text-muted-foreground break-words">{event.venues}</p>
+                <p className="text-responsive font-medium">Venues</p>
+                <p className="text-responsive text-muted-foreground break-words">{event.venues}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-2 sm:gap-3">
               <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm sm:text-base font-medium mb-2">RSVPs</p>
+                <p className="text-responsive font-medium mb-2">RSVPs</p>
                 <RSVPButton
                   eventId={event.id}
                   user={user}

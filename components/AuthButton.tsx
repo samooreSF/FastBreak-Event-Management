@@ -110,7 +110,7 @@ export function AuthButton({ user }: AuthButtonProps) {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex-center-responsive">
           <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
             <User className="h-4 w-4" />
             <span className="truncate max-w-[120px] lg:max-w-none">

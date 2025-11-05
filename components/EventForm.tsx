@@ -111,17 +111,17 @@ export function EventForm({ event }: EventFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-responsive">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm sm:text-base">Event Title *</FormLabel>
+              <FormLabel className="form-label-responsive">Event Title *</FormLabel>
               <FormControl>
                 <Input
                   placeholder="e.g., Summer Soccer Tournament"
-                  className="text-sm sm:text-base"
+                  className="text-responsive"
                   {...field}
                 />
               </FormControl>
@@ -135,9 +135,9 @@ export function EventForm({ event }: EventFormProps) {
           name="sport_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm sm:text-base">Sport Type *</FormLabel>
+              <FormLabel className="form-label-responsive">Sport Type *</FormLabel>
               <FormControl>
-                <Select className="text-sm sm:text-base" {...field}>
+                <Select className="text-responsive pr-5" {...field}>
                   <option value="">Select a sport</option>
                   {SPORT_TYPES.map((sport) => (
                     <option key={sport} value={sport}>
@@ -156,9 +156,13 @@ export function EventForm({ event }: EventFormProps) {
           name="event_date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm sm:text-base">Event Date & Time *</FormLabel>
+              <FormLabel className="form-label-responsive">Event Date & Time *</FormLabel>
               <FormControl>
-                <Input type="datetime-local" className="text-sm sm:text-base" {...field} />
+                <Input
+                  type="datetime-local"
+                  className="text-responsive white-calendar-icon"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -170,11 +174,11 @@ export function EventForm({ event }: EventFormProps) {
           name="venues"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm sm:text-base">Venues *</FormLabel>
+              <FormLabel className="form-label-responsive">Venues *</FormLabel>
               <FormControl>
                 <Input 
                   placeholder="e.g., Central Park, Madison Square Garden" 
-                  className="text-sm sm:text-base"
+                  className="text-responsive"
                   {...field} 
                 />
               </FormControl>
@@ -188,12 +192,12 @@ export function EventForm({ event }: EventFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm sm:text-base">Description</FormLabel>
+              <FormLabel className="form-label-responsive">Description</FormLabel>
               <FormControl>
                 <Textarea
                   rows={4}
                   placeholder="Add details about the event..."
-                  className="text-sm sm:text-base resize-y"
+                  className="text-responsive resize-y"
                   {...field}
                 />
               </FormControl>
@@ -202,14 +206,14 @@ export function EventForm({ event }: EventFormProps) {
           )}
         />
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+        <div className="flex-responsive gap-responsive">
+          <Button type="submit" disabled={isLoading} className="btn-responsive">
             {isLoading ? "Saving..." : event ? "Update Event" : "Create Event"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="w-full sm:w-auto"
+            className="btn-responsive"
             onClick={() => {
               if (event) {
                 router.push(`/events/${event.id}`);

@@ -76,7 +76,7 @@ export function EventCard({
             </div>
 
             {event.description && (
-              <p className="text-sm sm:text-base text-muted-foreground mb-4 line-clamp-2">{event.description}</p>
+              <p className="text-responsive text-muted-foreground mb-4 line-clamp-2">{event.description}</p>
             )}
 
             <div className="flex flex-col gap-2 text-xs sm:text-sm text-muted-foreground">
@@ -109,14 +109,14 @@ export function EventCard({
           />
           <div className="flex flex-wrap gap-2">
             <Link href={`/events/${event.id}`} className="flex-1 sm:flex-none">
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="btn-responsive">
                 View Details
               </Button>
             </Link>
             {canEdit && (
               <>
                 <Link href={`/events/${event.id}/edit`} className="flex-1 sm:flex-none">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="btn-responsive">
                     <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Edit</span>
                   </Button>

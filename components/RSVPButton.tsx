@@ -65,13 +65,13 @@ export function RSVPButton({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+    <div className="flex-responsive items-start sm:items-center gap-2 sm:gap-3">
       <Button
         onClick={handleRSVP}
         disabled={isLoading || !user}
         variant={hasRSVP ? "default" : "outline"}
         size="sm"
-        className="w-full sm:w-auto"
+        className="btn-responsive"
       >
         {hasRSVP ? (
           <>

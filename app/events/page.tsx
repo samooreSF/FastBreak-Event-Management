@@ -43,16 +43,16 @@ export default async function EventsPage({
       <Navbar />
 
       <main className="container mx-auto px-4 py-4 sm:py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex-responsive items-start sm:items-center justify-between gap-responsive mb-6 sm:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">All Events</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
+            <p className="text-responsive text-muted-foreground">
               Browse all upcoming sporting events
             </p>
           </div>
           {user && (
-            <Link href="/events/new" className="w-full sm:w-auto">
-              <Button size="sm" className="w-full sm:w-auto">
+            <Link href="/events/new" className="btn-responsive">
+              <Button size="sm" className="btn-responsive">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 Create Event
               </Button>
@@ -93,14 +93,14 @@ export default async function EventsPage({
           </>
         ) : (
           <div className="text-center py-8 sm:py-12">
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground mb-4 px-4">
+            <p className="text-responsive lg:text-lg text-muted-foreground mb-4 px-4">
               {hasFilters
                 ? "No events found matching your filters. Try adjusting your search criteria."
                 : "No events found. Be the first to create one!"}
             </p>
             {user && (
               <Link href="/events/new" className="inline-block">
-                <Button size="sm" className="w-full sm:w-auto">
+                <Button size="sm" className="btn-responsive">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                   Create Your First Event
                 </Button>
