@@ -5,28 +5,25 @@ import { cookies } from "next/headers";
 import {
   withErrorHandling,
   handleAuthError,
+  isNextRedirectError,
   type ActionResult,
 } from "@/lib/errors";
 import type { User } from "@supabase/supabase-js";
 
-export async function signInWithGoogle(): Promise<string | { error: string }> {
-  try {
+export async function signInWithGoogle(): Promise<ActionResult<string>> {
+  return withErrorHandling(async () => {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
 
     // Get the app URL for the callback
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "https://fast-break-event-management.vercel.app";
-    const redirectTo = `${appUrl}/auth/callback`;
-
-    //test env variable
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
       throw new Error(
         "Missing NEXT_PUBLIC_APP_URL environment variable. Please check your env variables."
       );
     }
 
+    const redirectTo = `${appUrl}/auth/callback`;
     console.log("Initiating Google OAuth with redirectTo:", redirectTo);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -39,12 +36,12 @@ export async function signInWithGoogle(): Promise<string | { error: string }> {
     if (error) {
       console.error("Google sign-in error:", error);
       const errorResponse = handleAuthError(error);
-      return { error: errorResponse.error };
+      throw new Error(errorResponse.error);
     }
 
     if (!data?.url) {
       console.error("No URL returned from signInWithOAuth");
-      return { error: "Failed to generate OAuth URL" };
+      throw new Error("Failed to generate OAuth URL");
     }
 
     console.log(
@@ -52,25 +49,8 @@ export async function signInWithGoogle(): Promise<string | { error: string }> {
       data.url.substring(0, 50) + "..."
     );
 
-    // Return the URL as a string for client-side redirect
     return data.url;
-  } catch (err: unknown) {
-    // Re-throw Next.js redirect errors
-    if (
-      err &&
-      typeof err === "object" &&
-      (("message" in err && err.message === "NEXT_REDIRECT") ||
-        ("digest" in err &&
-          typeof err.digest === "string" &&
-          err.digest.startsWith("NEXT_REDIRECT")))
-    ) {
-      throw err;
-    }
-
-    console.error("Error in signInWithGoogle:", err);
-    const errorResponse = handleAuthError(err);
-    return { error: errorResponse.error };
-  }
+  });
 }
 
 export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
@@ -81,7 +61,8 @@ export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      throw handleAuthError(error);
+      const errorResponse = handleAuthError(error);
+      throw new Error(errorResponse.error);
     }
 
     // Don't redirect here - let the client component handle navigation
@@ -90,12 +71,23 @@ export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
   });
 }
 
-export async function getUser(): Promise<{
-  user: User | null;
-  error: string | null;
-}> {
+/**
+ * Check if an error is a "session missing" error (expected when user is not authenticated)
+ */
+function isSessionMissingError(error: unknown): boolean {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = String(error.message);
+    return (
+      message.includes("Auth session missing") ||
+      message.includes("session missing") ||
+      (error as { status?: number }).status === 400
+    );
+  }
+  return false;
+}
+
+export async function getUser(): Promise<ActionResult<User | null>> {
   try {
-    // Always pass cookies() in server actions to allow Supabase to modify cookies if needed (e.g., token refresh)
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
 
@@ -106,48 +98,42 @@ export async function getUser(): Promise<{
 
     // Handle "Auth session missing" as a normal state (user not authenticated), not an error
     if (error) {
-      // Check if it's a session missing error (expected when user is not signed in)
-      if (
-        error.message?.includes("Auth session missing") ||
-        error.message?.includes("session missing") ||
-        error.status === 400
-      ) {
+      if (isSessionMissingError(error)) {
         // This is expected - user is simply not authenticated
-        return { user: null, error: null };
+        return { data: null, error: null };
       }
 
       // For other auth errors, return the error
       const errorResponse = handleAuthError(error);
-      return { user: null, error: errorResponse.error };
+      return { error: errorResponse.error };
     }
 
-    return { user: user || null, error: null };
+    return { data: user || null, error: null };
   } catch (err: unknown) {
     // Re-throw Next.js redirect errors
-    if (
-      err &&
-      typeof err === "object" &&
-      (("message" in err && err.message === "NEXT_REDIRECT") ||
-        ("digest" in err &&
-          typeof err.digest === "string" &&
-          err.digest.startsWith("NEXT_REDIRECT")))
-    ) {
+    if (isNextRedirectError(err)) {
       throw err;
     }
 
     console.error("Error in getUser:", err);
+
     // Check if it's a session missing error
-    if (
-      err instanceof Error &&
-      (err.message?.includes("Auth session missing") ||
-        err.message?.includes("session missing"))
-    ) {
-      return { user: null, error: null };
+    if (isSessionMissingError(err)) {
+      return { data: null, error: null };
     }
 
     const errorResponse = handleAuthError(err);
-    return { user: null, error: errorResponse.error };
+    return { error: errorResponse.error };
   }
+}
+
+/**
+ * Helper function to extract user from getUser() result
+ * Returns null if there's an error (user is not authenticated)
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  const result = await getUser();
+  return result.data ?? null;
 }
 
 /**
@@ -156,7 +142,7 @@ export async function getUser(): Promise<{
  */
 export async function exchangeCodeForSession(
   code: string
-): Promise<{ error: string | null }> {
+): Promise<ActionResult<{ success: true }>> {
   return withErrorHandling(async () => {
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
@@ -164,14 +150,10 @@ export async function exchangeCodeForSession(
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      throw handleAuthError(error);
+      const errorResponse = handleAuthError(error);
+      throw new Error(errorResponse.error);
     }
 
     return { success: true };
-  }).then((result) => {
-    if ("error" in result && result.error !== null) {
-      return { error: result.error };
-    }
-    return { error: null };
   });
 }

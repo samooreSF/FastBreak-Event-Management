@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { getEventById } from "@/actions/events";
 import { getUserRSVP, getRSVPCount } from "@/actions/rsvps";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { RSVPButton } from "@/components/RSVPButton";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Activity, Edit, ArrowLeft, Users } from "lucide-react";
@@ -16,7 +16,7 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params;
   const { data: event, error } = await getEventById(id);
-  const { user } = await getUser();
+  const user = await getCurrentUser();
   const { count: rsvpCount } = await getRSVPCount(id);
   const { hasRSVP } = await getUserRSVP(id);
 

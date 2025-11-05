@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AuthButton } from "./AuthButton";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { Button } from "./ui/button";
 import { Activity, Plus } from "lucide-react";
 
 export async function Navbar() {
-  const { user } = await getUser();
+  const user = await getCurrentUser();
 
   return (
     <nav className="border-b bg-background">

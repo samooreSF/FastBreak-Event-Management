@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { EventForm } from "@/components/EventForm";
 import { getEventById } from "@/actions/events";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -14,7 +14,7 @@ export default async function EditEventPage({
 }) {
   const { id } = await params;
   const { data: event, error } = await getEventById(id);
-  const { user } = await getUser();
+  const user = await getCurrentUser();
 
   if (error || !event) {
     redirect("/events");

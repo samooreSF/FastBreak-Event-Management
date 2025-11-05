@@ -1,10 +1,10 @@
 import { Navbar } from "@/components/Navbar";
 import { EventForm } from "@/components/EventForm";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { redirect } from "next/navigation";
 
 export default async function NewEventPage() {
-  const { user } = await getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/");

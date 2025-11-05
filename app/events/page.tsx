@@ -2,7 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { EventCard } from "@/components/EventCard";
 import { EventFilters } from "@/components/EventFilters";
 import { getEvents } from "@/actions/events";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { getRSVPsForEvents } from "@/actions/rsvps";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -21,7 +21,7 @@ export default async function EventsPage({
   };
 
   const { data: events, error } = await getEvents(filters);
-  const { user } = await getUser();
+  const user = await getCurrentUser();
 
   // Protect route - redirect to home if not authenticated
   if (!user) {

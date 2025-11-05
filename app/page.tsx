@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { EventCard } from "@/components/EventCard";
 import { getTrendingEvents } from "@/actions/events";
-import { getUser } from "@/actions/auth";
+import { getCurrentUser } from "@/actions/auth";
 import { getRSVPsForEvents } from "@/actions/rsvps";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ export default async function Home({
   searchParams: Promise<{ error?: string; signin?: string }>;
 }) {
   const { data: trendingEvents } = await getTrendingEvents(6);
-  const { user } = await getUser();
+  const user = await getCurrentUser();
   const params = await searchParams;
   const authError = params?.error;
   const signinRequired = params?.signin === "required";

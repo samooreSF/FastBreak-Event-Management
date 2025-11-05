@@ -1,16 +1,15 @@
-// lib/supabase/server.ts
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// For some reason Next does not export a named type for cookies() 
+// For some reason Next does not export a named type for cookies()
 // the RequestCookies type locally from the runtime using ReturnType.
 type RequestCookies = ReturnType<typeof cookies>;
 
 /**
  * Supabase server client.
- * Used mostly by actions 
+ * Used mostly by actions
  * If you need to modify cookies (set/delete), call this function from a
- * Route Handler or Server Action and pass the `cookies()` object into the
+ * Server Action and pass the `cookies()` object into the
  * `cookieStore` parameter. Modifying cookies outside of those contexts will
  * throw an error from Next.js. I do handle this error but cookies still remain readonly
  */
@@ -34,7 +33,6 @@ export const createClient = async (cookieStore?: RequestCookies) => {
 
   // Use provided cookieStore (from Server Action) when available.
   // NextJS doesn't like when cookies are modified outside of a Server Action
-
 
   const cookieStoreResolved = cookieStore ? await cookieStore : await cookies();
 

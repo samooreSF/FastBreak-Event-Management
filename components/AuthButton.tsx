@@ -6,19 +6,10 @@ import { signInWithGoogle, signOut } from "@/actions/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { isErrorResponse, getError } from "@/lib/errors";
 
 interface AuthButtonProps {
   user: SupabaseUser | null;
-}
-
-// Type guard for error response
-function isErrorResponse(result: unknown): result is { error: string } {
-  return (
-    typeof result === "object" &&
-    result !== null &&
-    "error" in result &&
-    typeof (result as { error: unknown }).error === "string"
-  );
 }
 
 export function AuthButton({ user }: AuthButtonProps) {
@@ -33,33 +24,27 @@ export function AuthButton({ user }: AuthButtonProps) {
     try {
       const result = await signInWithGoogle();
 
-      // Type guard: Check if result is a string (OAuth URL)
-      if (typeof result === "string" && result.length > 0) {
-        isNavigatingRef.current = true;
-        window.location.href = result;
-        return;
-      }
-
-      // Type guard: Check if result is an error response
-      if (!isNavigatingRef.current && isErrorResponse(result)) {
+      // Check if it's an error response
+      if (isErrorResponse(result)) {
         toast({
           variant: "destructive",
           title: "Error",
           description: result.error || "Failed to initiate sign-in",
         });
         setIsLoading(false);
-      } else if (!isNavigatingRef.current) {
-        // Fallback for unexpected result types
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to initiate sign-in. Please try again.",
-        });
-        setIsLoading(false);
+        return;
+      }
+
+      // Success - result.data is the OAuth URL
+      if (result.data) {
+        isNavigatingRef.current = true;
+        setTimeout(() => {
+          window.location.replace(result.data);
+        }, 0);
       }
     } catch (error) {
       if (!isNavigatingRef.current) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        const errorMessage = getError(error) || "An unexpected error occurred";
         toast({
           variant: "destructive",
           title: "Error",
@@ -77,22 +62,25 @@ export function AuthButton({ user }: AuthButtonProps) {
     try {
       const result = await signOut();
 
-      // Type guard: Check if result has an error property
-      if (isErrorResponse(result) && !isNavigatingRef.current) {
+      // Check if it's an error response
+      if (isErrorResponse(result)) {
         toast({
           variant: "destructive",
           title: "Error",
           description: result.error || "Sign out failed",
         });
         setIsLoading(false);
-      } else if (!isErrorResponse(result) && !isNavigatingRef.current) {
-        // Success case - no error property means success
-        isNavigatingRef.current = true;
-        window.location.replace("/");
+        return;
       }
+
+      // Success - redirect to home page
+      isNavigatingRef.current = true;
+      setTimeout(() => {
+        window.location.replace("/");
+      }, 0);
     } catch (error) {
       if (!isNavigatingRef.current) {
-        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+        const errorMessage = getError(error) || "An unexpected error occurred";
         toast({
           variant: "destructive",
           title: "Error",

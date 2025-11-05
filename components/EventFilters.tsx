@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
 
+//I can probably make this more dynamic with an api , but I'll hardcode for now
 const SPORT_TYPES = [
   "all",
   "Football",
