@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/Navbar";
-import { EventCard } from "@/components/EventCard";
+import { EventCardsContainer } from "@/components/EventCardsContainer";
 import { EventFilters } from "@/components/EventFilters";
 import { getEvents } from "@/actions/events";
 import { getCurrentUser } from "@/actions/auth";
@@ -20,7 +20,9 @@ export default async function EventsPage({
     title: params.title,
   };
 
-  const { data: events, error } = await getEvents(filters);
+  const eventsResult = await getEvents(filters);
+  const events = eventsResult.data ?? [];
+  const error = eventsResult.error;
   const user = await getCurrentUser();
 
   // Protect route - redirect to home if not authenticated
@@ -29,7 +31,7 @@ export default async function EventsPage({
   }
 
   // Fetch RSVP data for all events
-  const rsvpData = events
+  const rsvpData = events.length > 0
     ? await getRSVPsForEvents(
         events.map((e) => e.id),
         user?.id
@@ -69,28 +71,11 @@ export default async function EventsPage({
         )}
 
         {events && events.length > 0 ? (
-          <>
-            {hasFilters && (
-              <div className="mb-4 text-sm text-muted-foreground">
-                Found {events.length} event{events.length !== 1 ? "s" : ""}
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => {
-                const rsvp = rsvpData.get(event.id) || { count: 0, hasRSVP: false };
-                return (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    canEdit={user?.id === event.created_by}
-                    user={user}
-                    rsvpCount={rsvp.count}
-                    hasRSVP={rsvp.hasRSVP}
-                  />
-                );
-              })}
-            </div>
-          </>
+          <EventCardsContainer
+            events={events}
+            user={user}
+            rsvpData={rsvpData}
+          />
         ) : (
           <div className="text-center py-8 sm:py-12">
             <p className="text-responsive lg:text-lg text-muted-foreground mb-4 px-4">

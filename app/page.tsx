@@ -3,6 +3,7 @@ import { EventCard } from "@/components/EventCard";
 import { getTrendingEvents } from "@/actions/events";
 import { getCurrentUser } from "@/actions/auth";
 import { getRSVPsForEvents } from "@/actions/rsvps";
+import { Event } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,21 +14,21 @@ import {
 } from "@/components/ui/card";
 import { Plus, TrendingUp, Users, Calendar, Target, LogIn } from "lucide-react";
 import Link from "next/link";
-import { AuthErrorDisplay } from "@/components/AuthErrorDisplay";
+import { AuthErrorToast } from "@/components/AuthErrorToast";
 
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; signin?: string }>;
 }) {
-  const { data: trendingEvents } = await getTrendingEvents(6);
+  const trendingEventsResult = await getTrendingEvents(6);
+  const trendingEvents = trendingEventsResult.data ?? [];
   const user = await getCurrentUser();
   const params = await searchParams;
-  const authError = params?.error;
   const signinRequired = params?.signin === "required";
 
   // Fetch RSVP data for trending events
-  const rsvpData = trendingEvents
+  const rsvpData = trendingEvents.length > 0
     ? await getRSVPsForEvents(
         trendingEvents.map((e) => e.id),
         user?.id
@@ -39,8 +40,8 @@ export default async function Home({
       <Navbar />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Auth Error Display */}
-        {authError && <AuthErrorDisplay error={authError} />}
+        {/* Auth Error Toast - handles URL error params */}
+        <AuthErrorToast />
 
         {/* Sign In Required Prompt */}
         {signinRequired && !user && (
@@ -137,11 +138,13 @@ export default async function Home({
                 Trending Events
               </h2>
             </div>
-            <Link href="/events" className="btn-responsive">
-              <Button variant="outline" size="sm" className="btn-responsive">
-                View All Events
-              </Button>
-            </Link>
+            {user && (
+              <Link href="/events" className="btn-responsive">
+                <Button variant="outline" size="sm" className="btn-responsive">
+                  View All Events
+                </Button>
+              </Link>
+            )}
           </div>
 
           {trendingEvents && trendingEvents.length > 0 ? (

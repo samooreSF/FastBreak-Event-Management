@@ -2,12 +2,23 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { withErrorHandling, type ActionResult } from "@/types/errors";
 
-export async function addRSVP(eventId: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+/**
+ * Validate UUID format
+ */
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+export async function addRSVP(eventId: string): Promise<ActionResult<{ success: true }>> {
+  return withErrorHandling(async () => {
+    if (!eventId || !isValidUUID(eventId)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -15,7 +26,7 @@ export async function addRSVP(eventId: string) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { error: "You must be signed in to RSVP" };
+      throw new Error("You must be signed in to RSVP");
     }
 
     // Check if user already RSVP'd
@@ -27,7 +38,7 @@ export async function addRSVP(eventId: string) {
       .single();
 
     if (existingRSVP) {
-      return { error: "You have already RSVP'd for this event" };
+      throw new Error("You have already RSVP'd for this event");
     }
 
     // Add RSVP
@@ -36,23 +47,24 @@ export async function addRSVP(eventId: string) {
       .insert([{ event_id: eventId, user_id: user.id }]);
 
     if (error) {
-      return { error: error.message };
+      throw new Error(error.message);
     }
 
     revalidatePath(`/events/${eventId}`);
     revalidatePath("/events");
     revalidatePath("/");
 
-    return { success: true, error: null };
-  } catch (error) {
-    return { error: "Failed to add RSVP" };
-  }
+    return { success: true };
+  });
 }
 
-export async function removeRSVP(eventId: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function removeRSVP(eventId: string): Promise<ActionResult<{ success: true }>> {
+  return withErrorHandling(async () => {
+    if (!eventId || !isValidUUID(eventId)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -60,7 +72,7 @@ export async function removeRSVP(eventId: string) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { error: "You must be signed in" };
+      throw new Error("You must be signed in");
     }
 
     // Remove RSVP
@@ -71,23 +83,24 @@ export async function removeRSVP(eventId: string) {
       .eq("user_id", user.id);
 
     if (error) {
-      return { error: error.message };
+      throw new Error(error.message);
     }
 
     revalidatePath(`/events/${eventId}`);
     revalidatePath("/events");
     revalidatePath("/");
 
-    return { success: true, error: null };
-  } catch (error) {
-    return { error: "Failed to remove RSVP" };
-  }
+    return { success: true };
+  });
 }
 
-export async function getRSVPCount(eventId: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function getRSVPCount(eventId: string): Promise<ActionResult<number>> {
+  return withErrorHandling(async () => {
+    if (!eventId || !isValidUUID(eventId)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const { count, error } = await supabase
       .from("rsvps")
@@ -95,19 +108,20 @@ export async function getRSVPCount(eventId: string) {
       .eq("event_id", eventId);
 
     if (error) {
-      return { count: 0, error: error.message };
+      throw new Error(error.message);
     }
 
-    return { count: count || 0, error: null };
-  } catch (error) {
-    return { count: 0, error: "Failed to get RSVP count" };
-  }
+    return count || 0;
+  }, "Failed to get RSVP count");
 }
 
-export async function getUserRSVP(eventId: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function getUserRSVP(eventId: string): Promise<ActionResult<boolean>> {
+  return withErrorHandling(async () => {
+    if (!eventId || !isValidUUID(eventId)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -115,7 +129,7 @@ export async function getUserRSVP(eventId: string) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { hasRSVP: false, error: null };
+      return false;
     }
 
     const { data, error } = await supabase
@@ -127,13 +141,11 @@ export async function getUserRSVP(eventId: string) {
 
     if (error && error.code !== "PGRST116") {
       // PGRST116 is "not found" error, which is expected
-      return { hasRSVP: false, error: error.message };
+      throw new Error(error.message);
     }
 
-    return { hasRSVP: !!data, error: null };
-  } catch (error) {
-    return { hasRSVP: false, error: "Failed to check RSVP status" };
-  }
+    return !!data;
+  }, "Failed to check RSVP status");
 }
 
 export async function getRSVPsForEvents(eventIds: string[], userId?: string) {
@@ -141,8 +153,8 @@ export async function getRSVPsForEvents(eventIds: string[], userId?: string) {
 
   // Fetch RSVP counts for all events in parallel
   const countPromises = eventIds.map(async (eventId) => {
-    const { count } = await getRSVPCount(eventId);
-    return { eventId, count: count || 0 };
+    const result = await getRSVPCount(eventId);
+    return { eventId, count: result.data ?? 0 };
   });
 
   const counts = await Promise.all(countPromises);
@@ -151,8 +163,8 @@ export async function getRSVPsForEvents(eventIds: string[], userId?: string) {
   let userRSVPs: { eventId: string; hasRSVP: boolean }[] = [];
   if (userId) {
     const rsvpPromises = eventIds.map(async (eventId) => {
-      const { hasRSVP } = await getUserRSVP(eventId);
-      return { eventId, hasRSVP };
+      const result = await getUserRSVP(eventId);
+      return { eventId, hasRSVP: result.data ?? false };
     });
     userRSVPs = await Promise.all(rsvpPromises);
   }

@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import {
   getErrorMessage,
   type ActionResult,
-} from "@/lib/errors";
+} from "@/types/errors";
 
 /**
  * Hook for handling errors consistently in client components
@@ -46,7 +46,7 @@ export function useErrorHandler() {
     ): result is { data: T; error: null } => {
       // Handle ActionResult type
       if (result && typeof result === "object") {
-        // Check if it's an error response
+        // Check if it's an error response first
         if ("error" in result && result.error !== null && typeof result.error === "string") {
           const errorMessage = result.error;
           options?.onError?.(errorMessage);
@@ -56,7 +56,7 @@ export function useErrorHandler() {
           return false;
         }
 
-        // Check if it's a success response
+        // Check if it's a success response with data property (ActionResult format)
         if ("data" in result && "error" in result && result.error === null) {
           const successResult = result as { data: T; error: null };
           if (options?.successTitle || options?.successMessage) {
@@ -68,9 +68,22 @@ export function useErrorHandler() {
           options?.onSuccess?.(successResult.data);
           return true;
         }
+
+        // Check if it's a success response with success property (alternative format like RSVP actions)
+        if ("success" in result && "error" in result && result.error === null) {
+          if (options?.successTitle || options?.successMessage) {
+            toast({
+              title: options?.successTitle || "Success",
+              description: options?.successMessage || "Operation completed successfully",
+            });
+          }
+          // Call onSuccess - for success-only responses, pass undefined or the success value
+          options?.onSuccess?.(undefined as unknown as T);
+          return true;
+        }
       }
 
-      // Handle other error types
+      // Handle other error types (objects with error property but different structure)
       if (result && typeof result === "object" && "error" in result) {
         const errorResult = result as { error: string };
         handleError(errorResult.error, {
@@ -80,6 +93,10 @@ export function useErrorHandler() {
         return false;
       }
 
+      // If we can't determine success or error, treat as failure
+      handleError("Unknown error occurred", {
+        title: options?.errorTitle || "Error",
+      });
       return false;
     },
     [toast, handleError]

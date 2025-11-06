@@ -16,9 +16,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Event, EventInsert } from "@/types/database.types";
-import { useToast } from "@/hooks/use-toast";
+import { useErrorHandler } from "@/hooks/use-error-handler";
 import { useRouter } from "next/navigation";
 import { createEvent, updateEvent } from "@/actions/events";
+import { Loader2 } from "lucide-react";
 
 interface EventFormProps {
   event?: Event;
@@ -49,7 +50,7 @@ const eventFormSchema = z.object({
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export function EventForm({ event }: EventFormProps) {
-  const { toast } = useToast();
+  const { handleActionResult } = useErrorHandler();
   const router = useRouter();
 
   const form = useForm<EventFormValues>({
@@ -77,41 +78,39 @@ export function EventForm({ event }: EventFormProps) {
       created_by: event?.created_by || "",
     };
 
-    let result;
-    if (event) {
-      // Update existing event
-      result = await updateEvent(event.id, eventData);
-    } else {
-      // Create new event
-      result = await createEvent(eventData);
-    }
+    const result = event
+      ? await updateEvent(event.id, eventData)
+      : await createEvent(eventData);
 
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.error,
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: event
-          ? "Event updated successfully"
-          : "Event created successfully",
-      });
-      if (result.data) {
-        router.push(`/events/${result.data.id}`);
+    handleActionResult<Event>(result, {
+      successTitle: "Success",
+      successMessage: event
+        ? "Event updated successfully"
+        : "Event created successfully",
+      onSuccess: (data) => {
+        if (data?.id) {
+          router.push(`/events/${data.id}`);
+        } else {
+          router.push("/");
+        }
         router.refresh();
-      } else {
-        router.push("/");
-        router.refresh();
-      }
-    }
+      },
+    });
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-responsive">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-responsive relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">
+                {event ? "Updating event..." : "Creating event..."}
+              </p>
+            </div>
+          </div>
+        )}
         <FormField
           control={form.control}
           name="title"

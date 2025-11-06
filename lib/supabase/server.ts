@@ -1,71 +1,53 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// For some reason Next does not export a named type for cookies()
-// the RequestCookies type locally from the runtime using ReturnType.
-type RequestCookies = ReturnType<typeof cookies>;
+/**
+ * Cookie options type matching Next.js cookies() API
+ */
+type CookieOptions = {
+  domain?: string;
+  expires?: Date;
+  httpOnly?: boolean;
+  maxAge?: number;
+  path?: string;
+  sameSite?: "strict" | "lax" | "none";
+  secure?: boolean;
+};
 
 /**
  * Supabase server client.
- * Used mostly by actions
- * If you need to modify cookies (set/delete), call this function from a
- * Server Action and pass the `cookies()` object into the
- * `cookieStore` parameter. Modifying cookies outside of those contexts will
- * throw an error from Next.js. I do handle this error but cookies still remain readonly
+ * Handles its own cookie store internally.
+ * Used by server actions and route handlers.
+ * 
+ * This function automatically manages cookies using Next.js cookies() API.
+ * Cookies are read from and written to the request/response cookie store.
  */
-export const createClient = async (cookieStore?: RequestCookies) => {
+export const createClient = async () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  //redudant local testing for my environment variables
-
-  // if (!supabaseUrl) {
-  //   throw new Error(
-  //     "Missing NEXT_PUBLIC_SUPABASE_URL environment variable. Please check your .env.local file."
-  //   );
-  // }
-
-  // if (!supabaseAnonKey) {
-  //   throw new Error(
-  //     "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable. Please check your .env.local file."
-  //   );
-  // }
-
-  // Use provided cookieStore (from Server Action) when available.
-  // NextJS doesn't like when cookies are modified outside of a Server Action
-
-  const cookieStoreResolved = cookieStore ? await cookieStore : await cookies();
-
-  // Track if we're in a writable context
-  const isWritable = Boolean(cookieStore);
+  // Get the cookie store - this is always writable in server actions and route handlers
+  const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl!, supabaseAnonKey!, {
     cookies: {
       get(name: string) {
-        return cookieStoreResolved.get(name)?.value ?? null;
+        return cookieStore.get(name)?.value ?? null;
       },
-      set(name: string, value: string, options?: Record<string, any>) {
-        if (!isWritable) {
-          // Silently fail for read-only contexts - Supabase might try to set cookies internally
-          return;
-        }
-
+      set(name: string, value: string, options?: CookieOptions) {
         try {
-          cookieStoreResolved.set({ name, value, ...options });
+          cookieStore.set({ name, value, ...options });
         } catch (e) {
           // Silently handle errors - Supabase will handle missing cookies gracefully
+          // This can happen if called outside of a server action context
         }
       },
-      remove(name: string, options?: Record<string, any>) {
-        if (!isWritable) {
-          // Silently fail for read-only contexts - Supabase might try to delete expired cookies
-          return;
-        }
-
+      remove(name: string, options?: CookieOptions) {
         try {
-          cookieStoreResolved.delete({ name, ...options });
+          cookieStore.delete(name);
         } catch (e) {
           // Silently handle errors - Supabase will handle missing cookies gracefully
+          // This can happen if called outside of a server action context
         }
       },
     },

@@ -29,22 +29,38 @@ export function EventFilters() {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   
-  // Initialize state only on client to prevent hydration mismatches
+  // Local state for form inputs (updated immediately as user types/selects)
   const [sportType, setSportType] = useState("all");
   const [title, setTitle] = useState("");
+
+  // Applied filters from URL params (only updated when Apply Filters is clicked)
+  const [appliedSportType, setAppliedSportType] = useState("all");
+  const [appliedTitle, setAppliedTitle] = useState("");
 
   // Set mounted flag and initialize from URL params only on client
   useEffect(() => {
     setMounted(true);
-    setSportType(searchParams.get("sport") || "all");
-    setTitle(searchParams.get("title") || "");
+    const urlSport = searchParams.get("sport") || "all";
+    const urlTitle = searchParams.get("title") || "";
+    
+    // Initialize both local and applied state from URL
+    setSportType(urlSport);
+    setTitle(urlTitle);
+    setAppliedSportType(urlSport);
+    setAppliedTitle(urlTitle);
   }, []); // Only run on mount
 
-  // Update local state when URL params change (after initial mount)
+  // Update applied filters when URL params change (after initial mount)
+  // This handles browser back/forward navigation
   useEffect(() => {
     if (mounted) {
-      setSportType(searchParams.get("sport") || "all");
-      setTitle(searchParams.get("title") || "");
+      const urlSport = searchParams.get("sport") || "all";
+      const urlTitle = searchParams.get("title") || "";
+      setAppliedSportType(urlSport);
+      setAppliedTitle(urlTitle);
+      // Also update local state to keep form inputs in sync
+      setSportType(urlSport);
+      setTitle(urlTitle);
     }
   }, [searchParams, mounted]);
 
@@ -62,17 +78,23 @@ export function EventFilters() {
     // Update URL with new filters - this will trigger a server-side refetch
     const queryString = params.toString();
     router.push(`/events${queryString ? `?${queryString}` : ""}`);
+    
+    // Update applied filters to match what we just sent to URL
+    setAppliedSportType(sportType);
+    setAppliedTitle(title.trim());
   };
 
   const clearFilters = () => {
     setSportType("all");
     setTitle("");
+    setAppliedSportType("all");
+    setAppliedTitle("");
     router.push("/events");
   };
 
   const hasActiveFilters = 
-    (sportType && sportType !== "all") || 
-    title.trim() !== "";
+    (appliedSportType && appliedSportType !== "all") || 
+    appliedTitle.trim() !== "";
 
   return (
     <Card className="mb-6">
@@ -143,14 +165,14 @@ export function EventFilters() {
           <div className="mt-4 pt-4 border-t">
             <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
               <span className="text-muted-foreground">Active filters:</span>
-              {sportType && sportType !== "all" && (
+              {appliedSportType && appliedSportType !== "all" && (
                 <span className="px-2 py-1 bg-primary/10 text-primary rounded">
-                  Sport: {sportType}
+                  Sport: {appliedSportType}
                 </span>
               )}
-              {title.trim() && (
+              {appliedTitle.trim() && (
                 <span className="px-2 py-1 bg-primary/10 text-primary rounded truncate max-w-[200px] sm:max-w-none">
-                  Title: {title}
+                  Title: {appliedTitle}
                 </span>
               )}
             </div>

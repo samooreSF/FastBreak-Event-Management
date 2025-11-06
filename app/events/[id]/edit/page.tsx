@@ -43,7 +43,7 @@ export default async function EditEventPage({
           </p>
         </div>
 
-        <div className="bg-card rounded-lg border p-6">
+        <div className="bg-card rounded-lg border p-6 relative">
           <EventForm event={event} />
         </div>
       </main>

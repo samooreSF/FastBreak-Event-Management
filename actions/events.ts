@@ -2,13 +2,20 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { EventInsert, EventUpdate } from "@/types/database.types";
+import { EventInsert, EventUpdate, Event } from "@/types/database.types";
+import { withErrorHandling, type ActionResult } from "@/types/errors";
 
-export async function createEvent(eventData: EventInsert) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+/**
+ * Validate UUID format
+ */
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+export async function createEvent(eventData: EventInsert): Promise<ActionResult<Event>> {
+  return withErrorHandling(async () => {
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -16,7 +23,21 @@ export async function createEvent(eventData: EventInsert) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { error: "Unauthorized" };
+      throw new Error("Unauthorized");
+    }
+
+    // Validate required fields
+    if (!eventData.title || !eventData.title.trim()) {
+      throw new Error("Title is required");
+    }
+    if (!eventData.sport_type || !eventData.sport_type.trim()) {
+      throw new Error("Sport type is required");
+    }
+    if (!eventData.event_date) {
+      throw new Error("Event date is required");
+    }
+    if (!eventData.venues || !eventData.venues.trim()) {
+      throw new Error("Venues is required");
     }
 
     const { data, error } = await supabase
@@ -26,25 +47,22 @@ export async function createEvent(eventData: EventInsert) {
       .single();
 
     if (error) {
-      return { error: error.message };
+      throw new Error(error.message);
     }
 
     revalidatePath("/events");
     revalidatePath("/");
 
-    return { data, error: null };
-  } catch (error) {
-    return { error: "Failed to create event" };
-  }
+    return data;
+  });
 }
 
 export async function getEvents(filters?: {
   sport_type?: string;
   title?: string;
-}) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+}): Promise<ActionResult<Event[]>> {
+  return withErrorHandling(async () => {
+    const supabase = await createClient();
 
     let query = supabase.from("events").select("*");
 
@@ -63,19 +81,16 @@ export async function getEvents(filters?: {
     const { data, error } = await query;
 
     if (error) {
-      return { error: error.message, data: null };
+      throw new Error(error.message);
     }
 
-    return { data, error: null };
-  } catch (error) {
-    return { error: "Failed to fetch events", data: null };
-  }
+    return data || [];
+  }, "Failed to fetch events");
 }
 
-export async function getTrendingEvents(limit: number = 6) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function getTrendingEvents(limit: number = 6): Promise<ActionResult<Event[]>> {
+  return withErrorHandling(async () => {
+    const supabase = await createClient();
 
     // Get upcoming events (events happening in the future)
     const now = new Date().toISOString();
@@ -87,32 +102,28 @@ export async function getTrendingEvents(limit: number = 6) {
       .order("event_date", { ascending: true });
 
     if (error) {
-      return { error: error.message, data: null };
+      throw new Error(error.message);
     }
 
     if (!events || events.length === 0) {
-      return { data: [], error: null };
+      return [];
     }
 
-    // Get RSVP counts for all upcoming events
-    const rsvpCounts = await Promise.all(
-      events.map(async (event) => {
-        const { count } = await supabase
-          .from("rsvps")
-          .select("*", { count: "exact", head: true })
-          .eq("event_id", event.id);
-        
-        return {
-          eventId: event.id,
-          rsvpCount: count || 0,
-        };
-      })
-    );
+    // Get RSVP counts for all events in a single query (optimize N+1 issue)
+    const eventIds = events.map((e) => e.id);
+    const { data: rsvpData, error: rsvpError } = await supabase
+      .from("rsvps")
+      .select("event_id")
+      .in("event_id", eventIds);
 
     // Create a map of event ID to RSVP count
-    const rsvpMap = new Map(
-      rsvpCounts.map(({ eventId, rsvpCount }) => [eventId, rsvpCount])
-    );
+    const rsvpMap = new Map<string, number>();
+    if (rsvpData && !rsvpError) {
+      rsvpData.forEach((rsvp) => {
+        const currentCount = rsvpMap.get(rsvp.event_id) || 0;
+        rsvpMap.set(rsvp.event_id, currentCount + 1);
+      });
+    }
 
     // Sort events by RSVP count descending, then by event date ascending
     const sortedEvents = [...events].sort((a, b) => {
@@ -129,16 +140,17 @@ export async function getTrendingEvents(limit: number = 6) {
     });
 
     // Return the top N events
-    return { data: sortedEvents.slice(0, limit), error: null };
-  } catch (error) {
-    return { error: "Failed to fetch trending events", data: null };
-  }
+    return sortedEvents.slice(0, limit);
+  }, "Failed to fetch trending events");
 }
 
-export async function getEventById(id: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function getEventById(id: string): Promise<ActionResult<Event>> {
+  return withErrorHandling(async () => {
+    if (!id || !isValidUUID(id)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from("events")
@@ -147,19 +159,20 @@ export async function getEventById(id: string) {
       .single();
 
     if (error) {
-      return { error: error.message, data: null };
+      throw new Error(error.message);
     }
 
-    return { data, error: null };
-  } catch (error) {
-    return { error: "Failed to fetch event", data: null };
-  }
+    return data;
+  }, "Failed to fetch event");
 }
 
-export async function updateEvent(id: string, eventData: EventUpdate) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function updateEvent(id: string, eventData: EventUpdate): Promise<ActionResult<Event>> {
+  return withErrorHandling(async () => {
+    if (!id || !isValidUUID(id)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -167,7 +180,7 @@ export async function updateEvent(id: string, eventData: EventUpdate) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { error: "Unauthorized" };
+      throw new Error("Unauthorized");
     }
 
     // Check if user owns the event
@@ -178,7 +191,7 @@ export async function updateEvent(id: string, eventData: EventUpdate) {
       .single();
 
     if (fetchError || existingEvent?.created_by !== user.id) {
-      return { error: "Unauthorized" };
+      throw new Error("Unauthorized");
     }
 
     const { data, error } = await supabase
@@ -189,23 +202,26 @@ export async function updateEvent(id: string, eventData: EventUpdate) {
       .single();
 
     if (error) {
-      return { error: error.message };
+      throw new Error(error.message);
     }
 
+    // Clear cache for the event page and the home page
+    // This ensures users see updates immediately
     revalidatePath("/events");
     revalidatePath(`/events/${id}`);
     revalidatePath("/");
 
-    return { data, error: null };
-  } catch (error) {
-    return { error: "Failed to update event" };
-  }
+    return data;
+  });
 }
 
-export async function deleteEvent(id: string) {
-  try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function deleteEvent(id: string): Promise<ActionResult<null>> {
+  return withErrorHandling(async () => {
+    if (!id || !isValidUUID(id)) {
+      throw new Error("Invalid event ID");
+    }
+
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -213,7 +229,7 @@ export async function deleteEvent(id: string) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { error: "Unauthorized" };
+      throw new Error("Unauthorized");
     }
 
     // Check if user owns the event
@@ -224,20 +240,18 @@ export async function deleteEvent(id: string) {
       .single();
 
     if (fetchError || existingEvent?.created_by !== user.id) {
-      return { error: "Unauthorized" };
+      throw new Error("Unauthorized");
     }
 
     const { error } = await supabase.from("events").delete().eq("id", id);
 
     if (error) {
-      return { error: error.message };
+      throw new Error(error.message);
     }
 
     revalidatePath("/events");
     revalidatePath("/");
 
-    return { error: null };
-  } catch (error) {
-    return { error: "Failed to delete event" };
-  }
+    return null;
+  });
 }

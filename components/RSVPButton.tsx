@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useErrorHandler } from "@/hooks/use-error-handler";
 import { addRSVP, removeRSVP } from "@/actions/rsvps";
 import { UserCheck, UserPlus } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -25,6 +26,7 @@ export function RSVPButton({
   const [hasRSVP, setHasRSVP] = useState(initialHasRSVP);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { handleActionResult } = useErrorHandler();
   const router = useRouter();
 
   const handleRSVP = async () => {
@@ -43,23 +45,17 @@ export function RSVPButton({
       ? await removeRSVP(eventId)
       : await addRSVP(eventId);
 
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.error,
-      });
-    } else {
-      setHasRSVP(!hasRSVP);
-      setRSVPCount(hasRSVP ? rsvpCount - 1 : rsvpCount + 1);
-      toast({
-        title: "Success",
-        description: hasRSVP
-          ? "RSVP removed successfully"
-          : "RSVP added successfully",
-      });
-      router.refresh();
-    }
+    const success = handleActionResult<boolean>(result, {
+      successTitle: "Success",
+      successMessage: hasRSVP
+        ? "RSVP removed successfully"
+        : "RSVP added successfully",
+      onSuccess: () => {
+        setHasRSVP(!hasRSVP);
+        setRSVPCount(hasRSVP ? rsvpCount - 1 : rsvpCount + 1);
+        router.refresh();
+      },
+    });
 
     setIsLoading(false);
   };

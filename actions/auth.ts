@@ -1,22 +1,23 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   withErrorHandling,
   handleAuthError,
   isNextRedirectError,
   type ActionResult,
-} from "@/lib/errors";
+} from "@/types/errors";
 import type { User } from "@supabase/supabase-js";
 
-export async function signInWithGoogle(): Promise<ActionResult<string>> {
-  return withErrorHandling(async () => {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+export async function signInWithGoogle() {
+  try {
+    const supabase = await createClient();
 
     // Get the app URL for the callback
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : undefined);
+
     if (!appUrl) {
       throw new Error(
         "Missing NEXT_PUBLIC_APP_URL environment variable. Please check your env variables."
@@ -24,7 +25,6 @@ export async function signInWithGoogle(): Promise<ActionResult<string>> {
     }
 
     const redirectTo = `${appUrl}/auth/callback`;
-    console.log("Initiating Google OAuth with redirectTo:", redirectTo);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -34,30 +34,32 @@ export async function signInWithGoogle(): Promise<ActionResult<string>> {
     });
 
     if (error) {
-      console.error("Google sign-in error:", error);
       const errorResponse = handleAuthError(error);
       throw new Error(errorResponse.error);
     }
 
     if (!data?.url) {
-      console.error("No URL returned from signInWithOAuth");
       throw new Error("Failed to generate OAuth URL");
     }
 
-    console.log(
-      "OAuth URL generated successfully:",
-      data.url.substring(0, 50) + "..."
-    );
-
-    return data.url;
-  });
+    // Use redirect() to avoid input stream errors
+    // This throws a redirect error that Next.js handles properly
+    redirect(data.url);
+  } catch (error) {
+    // Re-throw redirect errors (they must propagate)
+    if (isNextRedirectError(error)) {
+      throw error;
+    }
+    
+    // Handle other errors
+    const errorResponse = handleAuthError(error);
+    throw new Error(errorResponse.error);
+  }
 }
 
-export async function signOut(): Promise<ActionResult<{ redirectTo: string }>> {
-  return withErrorHandling(async () => {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
-
+export async function signOut() {
+  try {
+    const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -65,11 +67,21 @@ export async function signOut(): Promise<ActionResult<{ redirectTo: string }>> {
       throw new Error(errorResponse.error);
     }
 
-    // Return redirect URL with signout flag for middleware to handle
-    // Middleware will redirect cleanly before React renders, preventing flash
-    return { redirectTo: "/?signout=success" };
-  });
+    // Use redirect() to avoid input stream errors
+    // This throws a redirect error that Next.js handles properly
+    redirect("/");
+  } catch (error) {
+    // Re-throw redirect errors (they must propagate)
+    if (isNextRedirectError(error)) {
+      throw error;
+    }
+    
+    // Handle other errors
+    const errorResponse = handleAuthError(error);
+    throw new Error(errorResponse.error);
+  }
 }
+
 
 /**
  * Check if an error is a "session missing" error (expected when user is not authenticated)
@@ -88,8 +100,7 @@ function isSessionMissingError(error: unknown): boolean {
 
 export async function getUser(): Promise<ActionResult<User | null>> {
   try {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createClient();
 
     const {
       data: { user },
@@ -114,8 +125,6 @@ export async function getUser(): Promise<ActionResult<User | null>> {
     if (isNextRedirectError(err)) {
       throw err;
     }
-
-    console.error("Error in getUser:", err);
 
     // Check if it's a session missing error
     if (isSessionMissingError(err)) {
@@ -144,8 +153,7 @@ export async function exchangeCodeForSession(
   code: string
 ): Promise<ActionResult<{ success: true }>> {
   return withErrorHandling(async () => {
-    const cookieStore = cookies();
-    const supabase = await createClient(cookieStore);
+    const supabase = await createClient();
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 

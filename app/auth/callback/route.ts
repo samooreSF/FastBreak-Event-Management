@@ -2,13 +2,10 @@
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { exchangeCodeForSession } from "@/actions/auth";
-import { isErrorResponse, isNextRedirectError, ErrorCode } from "@/lib/errors";
+import { isErrorResponse, isNextRedirectError } from "@/types/errors";
 
 // Disable streaming for this route to prevent "input stream" errors during redirects
-// force-dynamic prevents Next.js from trying to stream the response
 export const dynamic = "force-dynamic";
-// Explicitly use Node.js runtime (default, but explicit for clarity)
-// Required for reliable cookie handling with Supabase auth
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
@@ -18,74 +15,34 @@ export async function GET(request: Request) {
   const errorDescription = requestUrl.searchParams.get("error_description");
   const origin = requestUrl.origin;
 
-  // Handle OAuth errors from Supabase/Google
+  // Handle OAuth errors from provider (Google/Supabase)
   if (error) {
-    console.error("OAuth error from provider:", {
-      error,
-      errorDescription,
-    });
-    const errorMessage = errorDescription
-      ? encodeURIComponent(errorDescription)
-      : encodeURIComponent(error || "Authentication failed");
-    
-    // Use replace instead of redirect to avoid streaming conflicts
-    return NextResponse.redirect(`${origin}/?error=${errorMessage}`, {
+    const errorMessage = errorDescription || error || "Authentication failed";
+    return NextResponse.redirect(`${origin}/?error=${encodeURIComponent(errorMessage)}`, {
       status: 307,
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
     });
   }
 
-  // Handle missing code
+  // Handle missing authorization code
   if (!code) {
-    console.error("No authorization code received in callback");
     return NextResponse.redirect(
-      `${origin}/?error=${encodeURIComponent(
-        "No authorization code received"
-      )}`,
+      `${origin}/?error=${encodeURIComponent("No authorization code received")}`,
       {
         status: 307,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
-        },
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
       }
     );
   }
 
   try {
-    // Add retry logic for rate limit errors
-    let result;
-    let retries = 0;
-    const maxRetries = 2;
-    
-    while (retries <= maxRetries) {
-      result = await exchangeCodeForSession(code);
+    // Exchange authorization code for session
+    const result = await exchangeCodeForSession(code);
 
-      // Check if there's an error
-      if (isErrorResponse(result)) {
-        const isRateLimit = 
-          result.code === ErrorCode.RATE_LIMIT ||
-          result.error.toLowerCase().includes("rate limit") || 
-          result.error.toLowerCase().includes("too many");
-
-        // Retry on rate limit with exponential backoff
-        if (isRateLimit && retries < maxRetries) {
-          retries++;
-          const delay = Math.min(1000 * Math.pow(2, retries), 5000); // Max 5 seconds
-          console.log(`Rate limit hit, retrying after ${delay}ms (attempt ${retries}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-
-        // Handle final error or non-rate-limit error
-        console.error("Error exchanging code for session:", result.error);
-        redirect(`/?error=${encodeURIComponent(result.error)}`);
-        return;
-      }
-
-      // Success - break out of retry loop
-      break;
+    // Handle errors from exchange
+    if (isErrorResponse(result)) {
+      redirect(`/?error=${encodeURIComponent(result.error)}`);
+      return;
     }
 
     // Success - redirect to home page
@@ -96,23 +53,19 @@ export async function GET(request: Request) {
       throw err;
     }
 
-    // Handle streaming errors gracefully
+    // Handle streaming errors gracefully (transient connection issues)
     if (
       err instanceof Error &&
       (err.message?.includes("input stream") ||
         err.message?.includes("stream") ||
         err.message?.includes("ECONNRESET"))
     ) {
-      // Silently redirect - streaming errors are often transient
       redirect("/");
+      return;
     }
 
-    // Handle other errors
-    console.error("Unexpected error in callback:", err);
-
-    const errorMessage = 
-      err instanceof Error ? err.message : "An unexpected error occurred";
-    
+    // Handle unexpected errors
+    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
     redirect(`/?error=${encodeURIComponent(errorMessage)}`);
   }
 }

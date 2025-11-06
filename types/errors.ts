@@ -156,6 +156,20 @@ export function handleSupabaseError(error: unknown): ErrorResponse {
 }
 
 /**
+ * Check if an error is a Next.js redirect error (should be re-thrown)
+ */
+export function isNextRedirectError(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    (("message" in error && error.message === "NEXT_REDIRECT") ||
+      ("digest" in error &&
+        typeof error.digest === "string" &&
+        error.digest.startsWith("NEXT_REDIRECT")))
+  );
+}
+
+/**
  * Handle authentication errors
  */
 export function handleAuthError(error: unknown): ErrorResponse {
@@ -232,7 +246,6 @@ export async function withErrorHandling<T>(
       return createErrorResponse(error, error.code, error.details);
     }
 
-    console.error("Error in server action:", error);
     return createErrorResponse(
       error instanceof Error ? error.message : fallbackMessage,
       ErrorCode.INTERNAL_ERROR,
@@ -290,20 +303,6 @@ export function isSuccessResponse<T>(
 }
 
 /**
- * Check if an error is a Next.js redirect error (should be re-thrown)
- */
-export function isNextRedirectError(error: unknown): boolean {
-  return (
-    error !== null &&
-    typeof error === "object" &&
-    (("message" in error && error.message === "NEXT_REDIRECT") ||
-      ("digest" in error &&
-        typeof error.digest === "string" &&
-        error.digest.startsWith("NEXT_REDIRECT")))
-  );
-}
-
-/**
  * Get error message from any error type or ActionResult
  */
 export function getError(result: unknown): string | null {
@@ -327,3 +326,4 @@ export function assertSuccess<T>(
     );
   }
 }
+

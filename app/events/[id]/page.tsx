@@ -15,14 +15,18 @@ export default async function EventDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { data: event, error } = await getEventById(id);
+  const eventResult = await getEventById(id);
   const user = await getCurrentUser();
-  const { count: rsvpCount } = await getRSVPCount(id);
-  const { hasRSVP } = await getUserRSVP(id);
+  const rsvpCountResult = await getRSVPCount(id);
+  const userRSVPResult = await getUserRSVP(id);
 
-  if (error || !event) {
+  if (eventResult.error || !eventResult.data) {
     notFound();
   }
+
+  const event = eventResult.data;
+  const rsvpCount = rsvpCountResult.data ?? 0;
+  const hasRSVP = userRSVPResult.data ?? false;
 
   const canEdit = user?.id === event.created_by;
 

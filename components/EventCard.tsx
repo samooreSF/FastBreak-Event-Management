@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { deleteEvent } from "@/actions/events";
 import { RSVPButton } from "./RSVPButton";
-import { useToast } from "@/hooks/use-toast";
+import { useErrorHandler } from "@/hooks/use-error-handler";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -39,30 +39,24 @@ export function EventCard({
 }: EventCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { toast } = useToast();
+  const { handleActionResult } = useErrorHandler();
   const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
     const result = await deleteEvent(event.id);
 
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.error,
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Event deleted successfully",
-      });
-      onDelete?.();
-      router.refresh();
-    }
+    handleActionResult(result, {
+      successTitle: "Success",
+      successMessage: "Event deleted successfully",
+      onSuccess: () => {
+        onDelete?.();
+        router.refresh();
+        setShowDeleteDialog(false);
+      },
+    });
 
     setIsDeleting(false);
-    setShowDeleteDialog(false);
   };
 
   return (
