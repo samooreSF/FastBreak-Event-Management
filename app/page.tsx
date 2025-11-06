@@ -3,7 +3,6 @@ import { EventCard } from "@/components/EventCard";
 import { getTrendingEvents } from "@/actions/events";
 import { getCurrentUser } from "@/actions/auth";
 import { getRSVPsForEvents } from "@/actions/rsvps";
-import { Event } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
